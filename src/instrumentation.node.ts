@@ -9,7 +9,7 @@ export async function registerNode() {
   const { backupAutomatico, limparBackupsAutomaticosAntigos } = await import("@/lib/db/auto-backup");
 
   async function checarEFazerBackup(origem: string) {
-    const resultado = verificarIntegridadeBanco();
+    const resultado = await verificarIntegridadeBanco();
     if (!resultado.ok) {
       console.error("=".repeat(72));
       console.error(`[integridade] ALERTA (${origem}): ${resultado.motivo}`);
@@ -29,7 +29,14 @@ export async function registerNode() {
     limparBackupsAutomaticosAntigos();
   }
 
-  await checarEFazerBackup("boot");
+  // Não aguardado de propósito: a verificação de integridade agora pode levar
+  // até ~28s no pior caso (retry da corrida de recuperação do WAL, ver
+  // integrity-guard.ts). Bloquear register() nisso deixaria o servidor
+  // inteiro fora do ar até resolver — em vez disso, o servidor fica pronto
+  // na hora e a tela "Verificando integridade..." cobre esse intervalo.
+  checarEFazerBackup("boot").catch((erro) => {
+    console.error("[integridade] Erro inesperado na checagem de boot:", erro);
+  });
 
   const intervaloMin = Number(process.env.SLF_BACKUP_INTERVALO_MIN) || 15;
   setInterval(() => {

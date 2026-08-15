@@ -4,8 +4,9 @@ import "./globals.css";
 import Link from "next/link";
 import { obterSessao } from "@/lib/auth/session";
 import LogoutButton from "@/components/auth/LogoutButton";
-import { lerAlertaAtivo } from "@/lib/db/integrity-guard";
+import { lerAlertaAtivo, estaVerificando } from "@/lib/db/integrity-guard";
 import AlertaIntegridade from "@/components/AlertaIntegridade";
+import VerificandoIntegridade from "@/components/VerificandoIntegridade";
 
 const LABEL_PERFIL: Record<string, string> = {
   INSPETOR: "Inspetor/Encarregado",
@@ -36,8 +37,9 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const alerta = lerAlertaAtivo();
-  const sessao = alerta ? null : await obterSessao();
+  const verificando = estaVerificando();
+  const alerta = verificando ? null : lerAlertaAtivo();
+  const sessao = verificando || alerta ? null : await obterSessao();
 
   return (
     <html
@@ -45,7 +47,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-100 text-slate-900">
-        {alerta ? (
+        {verificando ? (
+          <VerificandoIntegridade />
+        ) : alerta ? (
           <AlertaIntegridade {...alerta} />
         ) : (
           <>
