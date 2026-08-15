@@ -9,6 +9,11 @@ export interface SessionPayload {
   nome: string;
   login: string;
   perfil: PerfilUsuario;
+  // Snapshot do momento do login — usado pelo proxy para forçar a troca de
+  // senha antes de liberar qualquer outra tela. Sessões antigas (emitidas
+  // antes deste campo existir) decodificam com `undefined`, tratado como
+  // "não precisa trocar" — não bloqueia retroativamente quem já tinha sessão.
+  deveTrocarSenha: boolean;
   exp: number;
 }
 

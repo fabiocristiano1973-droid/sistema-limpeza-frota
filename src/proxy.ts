@@ -5,6 +5,7 @@ import { decodificarSessao, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 // (usado em session.ts) funciona normalmente aqui.
 
 const ROTAS_PUBLICAS = ["/login"];
+const ROTA_TROCAR_SENHA = "/trocar-senha";
 const PREFIXOS_ADMIN = ["/cadastros"];
 const PREFIXOS_GESTOR_OU_ADMIN = ["/dashboard"];
 
@@ -24,6 +25,14 @@ export default function proxy(request: NextRequest) {
   if (!sessao) {
     const url = new URL("/login", request.url);
     return NextResponse.redirect(url);
+  }
+
+  // Senha provisória (definida na criação do usuário ou num reset feito por
+  // admin): bloqueia qualquer outra tela até a troca ser concluída. Vem
+  // antes das checagens de perfil de propósito — a exigência de troca
+  // independe do que o usuário tentou acessar.
+  if (sessao.deveTrocarSenha && pathname !== ROTA_TROCAR_SENHA) {
+    return NextResponse.redirect(new URL(ROTA_TROCAR_SENHA, request.url));
   }
 
   if (comecaCom(pathname, PREFIXOS_ADMIN) && sessao.perfil !== "ADMIN") {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
 import { obterSessao } from "@/lib/auth/session";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { lerAlertaAtivo } from "@/lib/db/integrity-guard";
@@ -53,7 +54,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 <span className="truncate">
                   {sessao.nome} · {LABEL_PERFIL[sessao.perfil] ?? sessao.perfil}
                 </span>
-                <LogoutButton />
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    href="/trocar-senha"
+                    className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white"
+                  >
+                    Trocar senha
+                  </Link>
+                  <LogoutButton />
+                </div>
               </div>
             )}
             {children}

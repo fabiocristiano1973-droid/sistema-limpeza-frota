@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     nome: usuario.nome,
     login: usuario.login,
     perfil: usuario.perfil,
+    deveTrocarSenha: usuario.deveTrocarSenha,
   });
 
   return NextResponse.json({ usuario: paraUsuarioPublico(usuario) });
