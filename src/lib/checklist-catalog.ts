@@ -5,13 +5,21 @@ export interface InfoCategoria {
   icone: string;
 }
 
-// Ícones/rótulos conhecidos para as áreas originais da V1. Qualquer nova
+// Ícones/rótulos conhecidos para as áreas do checklist. Qualquer nova
 // categoria cadastrada pelo usuário (ver Cadastros → Itens do Checklist)
 // funciona normalmente — apenas exibida com um ícone genérico (📋).
+//
+// Ordem e agrupamento seguem o fluxo físico de inspeção definido pela
+// diretoria em 2026-08-14: Externo/Bagageiro → Entrada dianteira → Cabine →
+// Acesso ao salão → Salão/Corredor → Bebedouro → Banheiro → Finalização
+// (este último é uma etapa fixa do wizard, fora do catálogo de categorias).
 const ICONES_CATEGORIA: Record<string, InfoCategoria> = {
-  externa: { label: "Área Externa", icone: "🚌" },
-  salao: { label: "Salão de Passageiros", icone: "💺" },
-  cabine: { label: "Cabine do Motorista", icone: "🧭" },
+  externa: { label: "Externo / Bagageiro", icone: "🚍" },
+  entrada_dianteira: { label: "Entrada Dianteira", icone: "🚪" },
+  cabine: { label: "Cabine do Motorista", icone: "👨‍✈️" },
+  acesso_salao: { label: "Acesso ao Salão", icone: "🚪" },
+  salao: { label: "Salão / Corredor", icone: "💺" },
+  bebedouro: { label: "Bebedouro", icone: "🚰" },
   banheiro: { label: "Banheiro", icone: "🚻" },
   bagageiro: { label: "Bagageiro", icone: "🧳" },
   equipamentos: { label: "Equipamentos", icone: "🎒" },
