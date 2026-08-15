@@ -13,11 +13,26 @@ import {
 import { calcularResumo } from "@/lib/calculations";
 import { catalogoAplicavel } from "@/lib/checklist-catalog";
 import { ItemChecklistCadastro, Veiculo } from "@/types/cadastros";
-import { Inspecao, ItemResultado, NovaInspecaoPayload, Turno } from "@/types/inspection";
+import { Inspecao, ItemResultado, NovaInspecaoPayload, StatusItem, Turno } from "@/types/inspection";
 
 export const runtime = "nodejs";
 
 const TURNOS_VALIDOS: Turno[] = ["Manhã", "Tarde", "Noite"];
+
+/**
+ * Status autoritativo do item, calculado no servidor a partir do catálogo —
+ * nunca confiado a partir do que o cliente enviou. Para itens do tipo
+ * SELECAO, o status é inteiramente derivado da opção escolhida (o cliente
+ * não pode "mentir" marcando conforme com uma opção que não é a conforme).
+ */
+function statusAutoritativo(catalogItem: ItemChecklistCadastro, item: ItemResultado): StatusItem | null {
+  if (catalogItem.tipoResposta === "SELECAO") {
+    if (!item.respostaSelecao || !catalogItem.opcoesSelecao?.includes(item.respostaSelecao)) return null;
+    return item.respostaSelecao === catalogItem.opcaoConforme ? "CONFORME" : "NAO_CONFORME";
+  }
+  if (!["CONFORME", "NAO_CONFORME", "NA"].includes(item.status)) return null;
+  return item.status;
+}
 
 function validarPayload(
   body: unknown,
@@ -40,10 +55,19 @@ function validarPayload(
   for (const catalogItem of itensExigidos) {
     const item = b.itens.find((i) => i.itemId === catalogItem.id) as ItemResultado | undefined;
     if (!item) return { erro: `Item do checklist ausente: ${catalogItem.nome}` };
-    if (!["CONFORME", "NAO_CONFORME", "NA"].includes(item.status)) {
-      return { erro: `Status inválido para o item: ${catalogItem.nome}` };
+
+    const status = statusAutoritativo(catalogItem, item);
+    if (!status) {
+      return catalogItem.tipoResposta === "SELECAO"
+        ? { erro: `Selecione uma opção válida para: ${catalogItem.nome}` }
+        : { erro: `Status inválido para o item: ${catalogItem.nome}` };
     }
-    if (item.status === "NAO_CONFORME") {
+
+    if (catalogItem.exigeFoto && status !== "NA" && !item.fotoDataUrl) {
+      return { erro: `Foto obrigatória para o item: ${catalogItem.nome}` };
+    }
+
+    if (status === "NAO_CONFORME") {
       if (!item.observacao || item.observacao.trim() === "") {
         return { erro: `Observação obrigatória para item não conforme: ${catalogItem.nome}` };
       }
@@ -137,15 +161,20 @@ export async function POST(request: NextRequest) {
   // no cliente para categoria/nome/criticidade do catálogo).
   const itens: ItemResultado[] = itensExigidos.map((catalogItem) => {
     const item = payload.itens.find((i) => i.itemId === catalogItem.id)!;
+    const status = statusAutoritativo(catalogItem, item)!; // já validado em validarPayload
+    const naoConforme = status === "NAO_CONFORME";
     return {
       itemId: catalogItem.id,
       categoria: catalogItem.categoria,
       label: catalogItem.nome,
-      status: item.status,
-      observacao: item.status === "NAO_CONFORME" ? item.observacao : undefined,
-      fotoDataUrl: item.status === "NAO_CONFORME" ? item.fotoDataUrl : undefined,
-      evidenciaTipo: item.status === "NAO_CONFORME" ? item.evidenciaTipo : undefined,
-      criticidade: item.status === "NAO_CONFORME" ? item.criticidade : undefined,
+      status,
+      observacao: naoConforme ? item.observacao : undefined,
+      // Preservada sempre que enviada, não só em Não Conforme — itens com
+      // exigeFoto precisam da foto mesmo quando Conforme.
+      fotoDataUrl: item.fotoDataUrl,
+      evidenciaTipo: item.fotoDataUrl ? item.evidenciaTipo : undefined,
+      criticidade: naoConforme ? item.criticidade : undefined,
+      respostaSelecao: catalogItem.tipoResposta === "SELECAO" ? item.respostaSelecao : undefined,
     };
   });
 

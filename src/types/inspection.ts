@@ -22,6 +22,9 @@ export interface ItemResultado {
   fotoDataUrl?: string;
   evidenciaTipo?: TipoEvidencia;
   criticidade?: Criticidade;
+  // Opção escolhida quando o item é do tipo SELECAO (ex.: "Turva") — snapshot
+  // congelado no momento da inspeção, igual aos demais campos aqui.
+  respostaSelecao?: string;
 }
 
 export interface ResumoInspecao {

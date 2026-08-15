@@ -124,6 +124,16 @@ export default async function DetalheInspecaoPage({
                             {info.emoji} {info.label}
                           </span>
                         </div>
+                        {item.respostaSelecao && (
+                          <p className="mt-1 text-xs text-slate-500">Resposta: {item.respostaSelecao}</p>
+                        )}
+                        {item.status !== "NAO_CONFORME" && item.fotoDataUrl && (
+                          <EvidenciaPreview
+                            url={item.fotoDataUrl}
+                            tipo={item.evidenciaTipo}
+                            className="mt-2 h-20 w-20 rounded-lg object-cover ring-1 ring-slate-300"
+                          />
+                        )}
                         {item.status === "NAO_CONFORME" && (
                           <div className="mt-2 rounded-xl bg-red-50 p-3 text-xs">
                             <span

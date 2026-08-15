@@ -61,6 +61,12 @@ export type AplicacaoItemChecklist = "TODOS" | "CLASSIFICACAO";
 
 export type CriticidadePadrao = "NORMAL" | "CRITICO";
 
+// "PADRAO" = os 3 botões de sempre (Conforme/Não Conforme/N/A). "SELECAO" =
+// uma lista fixa de opções (ex.: aparência da água); a opção escolhida
+// determina o status automaticamente (ver opcaoConforme). Campo ausente em
+// itens antigos é tratado como "PADRAO" — não muda nada pra eles.
+export type TipoRespostaItem = "PADRAO" | "SELECAO";
+
 export interface ItemChecklistCadastro {
   id: string;
   // Categoria / Área da inspeção (ex: "externa", "salao", ou qualquer valor
@@ -74,6 +80,16 @@ export interface ItemChecklistCadastro {
   // maiúsculas/minúsculas) com Veiculo.tipoVeiculo. Ex: "DD".
   aplicacaoClassificacao?: string;
   criticidadePadrao: CriticidadePadrao;
+  // Quando true, a etapa exige pelo menos 1 foto vinculada a este item para
+  // ser considerada completa (sempre que o item não for marcado N/A) —
+  // independente do status ser Conforme ou Não Conforme.
+  exigeFoto?: boolean;
+  tipoResposta?: TipoRespostaItem;
+  // Usados apenas quando tipoResposta === "SELECAO".
+  opcoesSelecao?: string[];
+  // Qual opção de opcoesSelecao é tratada como Conforme — qualquer outra
+  // opção escolhida vira Não Conforme automaticamente.
+  opcaoConforme?: string;
   criadoEm: string;
   atualizadoEm: string;
 }
