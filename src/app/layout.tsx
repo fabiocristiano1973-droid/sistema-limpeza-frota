@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { obterSessao } from "@/lib/auth/session";
 import LogoutButton from "@/components/auth/LogoutButton";
+import { lerAlertaAtivo } from "@/lib/db/integrity-guard";
+import AlertaIntegridade from "@/components/AlertaIntegridade";
 
 const LABEL_PERFIL: Record<string, string> = {
   INSPETOR: "Inspetor/Encarregado",
@@ -33,7 +35,8 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const sessao = await obterSessao();
+  const alerta = lerAlertaAtivo();
+  const sessao = alerta ? null : await obterSessao();
 
   return (
     <html
@@ -41,15 +44,21 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-100 text-slate-900">
-        {sessao && (
-          <div className="flex items-center justify-between bg-slate-900 px-4 py-1.5 text-xs text-slate-200">
-            <span className="truncate">
-              {sessao.nome} · {LABEL_PERFIL[sessao.perfil] ?? sessao.perfil}
-            </span>
-            <LogoutButton />
-          </div>
+        {alerta ? (
+          <AlertaIntegridade {...alerta} />
+        ) : (
+          <>
+            {sessao && (
+              <div className="flex items-center justify-between bg-slate-900 px-4 py-1.5 text-xs text-slate-200">
+                <span className="truncate">
+                  {sessao.nome} · {LABEL_PERFIL[sessao.perfil] ?? sessao.perfil}
+                </span>
+                <LogoutButton />
+              </div>
+            )}
+            {children}
+          </>
         )}
-        {children}
       </body>
     </html>
   );
