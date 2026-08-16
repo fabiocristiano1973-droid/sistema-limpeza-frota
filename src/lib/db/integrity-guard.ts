@@ -73,14 +73,17 @@ export function estaVerificando(): boolean {
   return fs.existsSync(caminhoVerificando());
 }
 
-// Teto de segurança para o pior caso. Medido em 2026-08-15 com testes
-// controlados e repetidos (com e sem escrita forçada no arquivo a cada
-// tentativa — não fez diferença, ver histórico completo abaixo): a janela
-// real ficou consistentemente perto de 40-42s. 90 x 1s = até 90s dá margem
-// real (~2x o pior caso observado) em vez de só encostar no limite. Não
-// afeta o caminho normal: a resposta é confiável e o laço para assim que
-// vier um resultado OK — normalmente na 1ª tentativa.
-const TENTATIVAS = 90;
+// Teto de segurança para o pior caso. CALIBRADO COM DADOS REAIS EM
+// 2026-08-16 (não é mais estimativa): dois reboots completos e genuínos da
+// máquina do Fábio (não `taskkill` simulado) no mesmo dia esgotaram as 90
+// tentativas anteriores (~90s) nas duas vezes, de forma bem consistente —
+// 93,8s e 92,7s até o alarme disparar, com os dados sempre íntegros por
+// baixo. Ou seja: 90s não tinha folga nenhuma, era exatamente o limite.
+// 150 x 1s = até ~151s dá uma folga real (~58s) acima do pior caso medido,
+// em vez de só encostar nele de novo. Não afeta o caminho normal: a
+// resposta é confiável e o laço para assim que vier um resultado OK —
+// normalmente na 1ª tentativa, sem nenhum atraso extra.
+const TENTATIVAS = 150;
 const INTERVALO_MS = 1000;
 
 // Pausa fixa antes da 1ª tentativa (mitigação empírica — ver histórico
@@ -176,16 +179,25 @@ function tentarVerificar(dbPath: string): ResultadoIntegridade {
  *      escrita alimenta o bloqueio" está DESCARTADA: o atraso é puramente
  *      externo, com um relógio próprio que não muda com nada que fazemos
  *      aqui (nem ler mais devagar, nem ler mais rápido, nem escrever).
+ *   5. Em 2026-08-16, dois REBOOTS REAIS E COMPLETOS da máquina (não
+ *      `taskkill` simulado — um deles ao ligar o PC de manhã, outro
+ *      deliberado com o Fábio observando ao vivo) esgotaram as 90
+ *      tentativas anteriores (~90s) nas DUAS vezes, com uma consistência
+ *      alta: 93,8s e 92,7s até o alarme disparar. Ou seja, o orçamento de
+ *      90s não tinha nenhuma folga de verdade — era praticamente o limite
+ *      exato. Orçamento recalibrado para ~150s (150x1s) com dado real, não
+ *      mais estimativa.
  *
  * Estratégia atual (a mais confiável possível só com código, dado que a
  * causa é externa e não influenciável por aqui): leitura pura (zero
  * escrita) em tentarVerificar(), pausa fixa antes da 1ª tentativa
  * (PAUSA_INICIAL_MS), e retry só até a primeira leitura OK — toda leitura
  * de sucesso observada nos testes foi sempre confiável; leituras de falha
- * continuam tentando até esgotar um orçamento (~90s, quase o dobro do pior
- * caso medido) antes de declarar alarme de verdade. Isso não elimina o
- * atraso, mas garante que o sistema espere tempo suficiente antes de
- * assustar alguém à toa — a tela "Verificando..." cobre essa espera.
+ * continuam tentando até esgotar o orçamento (~151s, calibrado com os dois
+ * reboots reais medidos em 2026-08-16, não mais estimativa) antes de
+ * declarar alarme de verdade. Isso não elimina o atraso, mas garante que o
+ * sistema espere tempo suficiente antes de assustar alguém à toa — a tela
+ * "Verificando..." cobre essa espera.
  *
  * PRÓXIMO PASSO REAL (fora do escopo de código, é config do Windows — não
  * decido isso sozinho): adicionar `%LOCALAPPDATA%\SistemaLimpezaFrota\` às
@@ -193,7 +205,11 @@ function tentarVerificar(dbPath: string): ResultadoIntegridade {
  * de dezenas de segundos, consistente, independente de tudo que o app faz,
  * é a assinatura clássica de antivírus fazendo varredura em tempo real) —
  * e é praticamente sem risco excluir uma pasta que só tem dado do próprio
- * app. Se isso não resolver, aí sim a investigação com Process Monitor da
+ * app. Em 2026-08-16 o Fábio decidiu levar essa solicitação para o TI da
+ * empresa em vez de aplicar sozinho (a máquina não é de uso pessoal livre);
+ * aprovação pode demorar — o orçamento de 150s acima é a rede de segurança
+ * enquanto isso não sai. Se a exclusão do Defender não resolver mesmo
+ * depois de aprovada, aí sim a investigação com Process Monitor da
  * Sysinternals (ao vivo, durante um reboot real) é o próximo passo — ver
  * project_sistema_limpeza_frota.md.
  */
