@@ -27,6 +27,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Inspeção da Limpeza da Frota",
   description: "Sistema de Inspeção e Liberação da Limpeza da Frota",
+  // iOS não segue o manifest.ts pra experiência "tela cheia" tão bem quanto
+  // o Android — essas duas chaves são o que faz "Adicionar à Tela de
+  // Início" no iPhone/iPad abrir sem a barra de endereço do Safari.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Limpeza Frota",
+  },
 };
 
 export const viewport: Viewport = {

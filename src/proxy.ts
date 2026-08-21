@@ -48,6 +48,11 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    // manifest.webmanifest, icon.png e apple-icon.png (gerados pelas
+    // convenções de arquivo do Next a partir de src/app/) e a pasta
+    // public/icons/ precisam ficar de fora do proxy — são pedidos pelo
+    // próprio navegador/SO ao tentar "Adicionar à Tela de Início" (PWA),
+    // ANTES de qualquer login existir, então nunca podem ser redirecionados.
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.webmanifest|icon.png|apple-icon.png|icons/).*)",
   ],
 };
