@@ -1,4 +1,4 @@
-import { createSqliteCrudRepository } from "./sqlite-crud-repository";
+import { createCrudRepository } from "./crud-repository";
 import {
   SEED_EQUIPES,
   SEED_GARAGENS,
@@ -9,23 +9,23 @@ import {
 } from "@/lib/seed-data";
 import { Equipe, Garagem, Inspetor, ItemChecklistCadastro, TipoLimpeza, Veiculo } from "@/types/cadastros";
 
-export const garagensRepo = createSqliteCrudRepository<Garagem>("garagens", () => SEED_GARAGENS);
+export const garagensRepo = createCrudRepository<Garagem>("garagens", () => SEED_GARAGENS);
 
-export const tiposLimpezaRepo = createSqliteCrudRepository<TipoLimpeza>(
+export const tiposLimpezaRepo = createCrudRepository<TipoLimpeza>(
   "tipos_limpeza",
   () => SEED_TIPOS_LIMPEZA
 );
 
-export const veiculosRepo = createSqliteCrudRepository<Veiculo>("veiculos", () => SEED_VEICULOS);
+export const veiculosRepo = createCrudRepository<Veiculo>("veiculos", () => SEED_VEICULOS);
 
-export const inspetoresRepo = createSqliteCrudRepository<Inspetor>(
+export const inspetoresRepo = createCrudRepository<Inspetor>(
   "inspetores",
   () => SEED_INSPETORES
 );
 
-export const equipesRepo = createSqliteCrudRepository<Equipe>("equipes", () => SEED_EQUIPES);
+export const equipesRepo = createCrudRepository<Equipe>("equipes", () => SEED_EQUIPES);
 
-export const itensChecklistRepo = createSqliteCrudRepository<ItemChecklistCadastro>(
+export const itensChecklistRepo = createCrudRepository<ItemChecklistCadastro>(
   "itens_checklist",
   () => SEED_ITENS_CHECKLIST
 );

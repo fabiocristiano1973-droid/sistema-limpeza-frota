@@ -1,7 +1,7 @@
-import { createSqliteCrudRepository } from "./sqlite-crud-repository";
+import { createCrudRepository } from "./crud-repository";
 import { Usuario } from "@/types/auth";
 
-export const usuariosRepo = createSqliteCrudRepository<Usuario>("usuarios", () => []);
+export const usuariosRepo = createCrudRepository<Usuario>("usuarios", () => []);
 
 export async function buscarUsuarioPorLogin(login: string): Promise<Usuario | null> {
   const todos = await usuariosRepo.list();
