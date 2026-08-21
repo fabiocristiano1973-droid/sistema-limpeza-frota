@@ -162,7 +162,16 @@ export default async function DetalheInspecaoPage({
           })}
         </div>
 
-        <div className="mt-6 flex gap-3">
+        <a
+          href={`/api/inspections/${inspecao.id}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-center text-sm font-semibold text-white"
+        >
+          📄 Baixar relatório em PDF
+        </a>
+
+        <div className="mt-3 flex gap-3">
           <Link
             href="/inspecoes"
             className="flex-1 rounded-xl bg-slate-100 px-4 py-3.5 text-center text-sm font-semibold text-slate-700"
