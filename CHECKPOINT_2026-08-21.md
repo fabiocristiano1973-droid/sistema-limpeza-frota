@@ -1,107 +1,95 @@
-# Checkpoint técnico — 21/08/2026
+# Checkpoint técnico — 21/08/2026 (fim do dia)
 
-Encerramento seguro do dia. Este arquivo é o ponto de partida para retomar amanhã sem
-precisar reconstruir contexto.
+Dia de virada de chave: o sistema saiu de "roda só no meu computador" para **produção real, na
+nuvem, funcionando de qualquer lugar**. Este arquivo é o ponto de partida pra retomar depois sem
+precisar reconstruir contexto — qualquer sessão de IA (Claude Code, ChatGPT) deve ler isto
+primeiro.
 
 ## Estado do Git
 
-- **Último commit**: `a9a938f` — "feat(producao): adiciona camada Postgres/Supabase em paralelo ao SQLite"
-- **Branch**: `master`
-- **Working tree**: limpo (`nothing to commit, working tree clean`) — nada pendente, nada não salvo.
-- Nenhum push feito hoje nem em nenhum dia anterior — histórico só existe local, sem remoto configurado.
+- **Último commit**: `c7b58f4` — "fix(auth): usa SESSION_SECRET de variavel de ambiente na Vercel"
+- **Branch**: `main` (renomeada de `master` hoje, pra bater com o padrão do GitHub/Vercel)
+- **Working tree**: limpo.
+- **Novidade de hoje**: o projeto agora tem um repositório remoto real —
+  `https://github.com/fabiocristiano1973-droid/sistema-limpeza-frota` (público — considerar
+  trocar pra privado). Antes disso, o histórico só existia local; a partir de hoje, todo `git
+  push` envia pra lá, e é esse repositório que a Vercel usa pra implantar automaticamente a cada
+  push na `main`.
 
-## Funcionalidades concluídas hoje (21/08/2026)
+## O que foi concluído hoje (lista completa, em ordem)
 
-1. Confirmado que a sessão de trabalho passou a rodar no computador pessoal (`DESKTOP-A8U5BLC`),
-   com código sincronizado via OneDrive e banco SQLite local íntegro (290 veículos, 5 garagens,
-   59 itens de checklist, 6 inspetores, 5 equipes, 1 usuário, 0 inspeções).
-2. Construída a camada Postgres/Supabase **em paralelo** à SQLite (nenhuma delas ativa por padrão):
-   - `src/lib/db/driver.ts` — decide o driver ativo só pela presença de `DATABASE_URL`.
-   - `src/lib/db/postgres.ts` — pool de conexão (`pg`), não instanciado enquanto `DATABASE_URL`
-     não existir.
-   - `src/lib/repository/postgres-crud-repository.ts` e
-     `src/lib/repository/postgres-inspection-repository.ts` — espelham exatamente o
-     comportamento das versões SQLite existentes.
-   - `src/lib/repository/crud-repository.ts` — ponto único de troca para os cadastros/usuários.
-   - `src/lib/repository/cadastros.ts`, `usuarios.ts`, `index.ts` — atualizados para passar pelo
-     ponto único de troca (sem mudar nenhuma página/rota).
-3. Script `scripts/migrar-para-postgres.mjs` preparado: faz backup do SQLite de origem antes de
-   qualquer leitura, copia as 8 tabelas para o Postgres, valida contagem de linhas.
-   **Não foi executado.**
-4. Validação de qualidade: `tsc --noEmit` limpo, `npm run lint` limpo, `npm run build` limpo,
-   boot real do servidor testado numa porta separada (3001, sem interferir no servidor já em uso
-   na porta 3000) — guarda de integridade OK, login carregou normalmente.
-5. Commit único e coerente: `a9a938f`.
+1. **Migração real de dados**: SQLite local → Postgres/Supabase, executada e validada (contagens
+   batendo em ambos os lados, conferido por dois caminhos independentes). 290 veículos, 59 itens
+   de checklist, 6 inspetores, 5 equipes, 5 garagens, 5 tipos de limpeza, 1 usuário migrados sem
+   perda. Backup do SQLite de origem preservado antes da migração
+   (`backups/pre-migracao-postgres-*` e `backups/dump-para-migracao/`).
+2. **Ajustes de produção no código**: cookie de sessão vira `secure` automaticamente na Vercel
+   (sem quebrar o uso local em HTTP); guarda de integridade e backup automático do SQLite se
+   desligam sozinhos quando o driver ativo é Postgres; `SESSION_SECRET` passou a vir de variável
+   de ambiente em vez de arquivo local (esse arquivo não existiria/persistiria num ambiente
+   serverless).
+3. **Geração de PDF do relatório de inspeção**: nova (não existia antes de hoje). Botão "Baixar
+   relatório em PDF" na tela de cada inspeção, testado com dados reais e confirmado pelo Fábio em
+   produção.
+4. **Conta GitHub criada** (`fabiocristiano1973-droid`), repositório criado, código enviado.
+5. **Conta Vercel criada**, projeto importado do GitHub, variáveis de ambiente configuradas
+   (`DATABASE_URL` — pooler do Supabase, porta 6543; `SESSION_SECRET` — chave aleatória gerada
+   hoje), deploy concluído com sucesso.
+6. **Testado em produção, de ponta a ponta, pelo Fábio**: celular, Wi-Fi desligado (só 4G/5G),
+   login, inspeção nova completa com foto real pela câmera, finalização, download do PDF — tudo
+   funcionando. Confirmado independentemente direto no banco (inspeção do veículo 5125/JQC9404,
+   58 itens, salva via app em produção).
 
-## Arquivos principais criados/alterados hoje
+## Situação de cada frente
 
-Criados:
-- `src/lib/db/driver.ts`
-- `src/lib/db/postgres.ts`
-- `src/lib/repository/crud-repository.ts`
-- `src/lib/repository/postgres-crud-repository.ts`
-- `src/lib/repository/postgres-inspection-repository.ts`
-- `scripts/migrar-para-postgres.mjs`
+- **SQLite local**: continua intacto, é a cópia "histórica" — não é mais o banco ativo em
+  produção, mas segue funcionando localmente se `DATABASE_URL` não estiver setada no ambiente.
+- **PostgreSQL/Supabase**: **é o banco ativo em produção agora.** Projeto Supabase
+  (`zuuaqndvipekivonhabj`), status saudável.
+- **Vercel**: **implantado e funcionando.** URL pública:
+  `https://sistema-limpeza-frota.vercel.app`. Deploy automático a cada `git push` na `main`.
+- **PWA**: concluído (dia anterior), "Adicionar à Tela de Início" funciona em Android/iOS.
+- **PDF**: concluído hoje, testado e confirmado em produção.
+- **GitHub**: repositório criado e conectado, `fabiocristiano1973-droid/sistema-limpeza-frota`,
+  atualmente **público** (considerar trocar pra privado, é sistema interno da empresa).
 
-Alterados (só o ponto de troca de storage, nenhuma lógica de negócio):
-- `src/lib/repository/cadastros.ts`
-- `src/lib/repository/usuarios.ts`
-- `src/lib/repository/index.ts`
-- `package.json` / `package-lock.json` (dependência `pg` adicionada)
+## Critérios de aceite do Fábio (10 originais) — status
 
-## Situação do SQLite
+1. Funciona por endereço HTTPS fixo — ✅ confirmado.
+2. Celular funciona fora da rede de casa/empresa (4G/5G) — ✅ confirmado hoje, com inspeção real completa.
+3. Tablet completa o checklist — não testado ainda.
+4. Dado sobrevive a reinício/logout/novo acesso — ✅ (Postgres é persistente, não depende de processo local).
+5. Fotos permanecem corretamente vinculadas — ✅ confirmado (foto real da câmera, salva e visível na inspeção).
+6. PDF do relatório gerado corretamente — ✅ confirmado em produção.
+7. Dois dispositivos usando ao mesmo tempo sem corromper dado — não testado ainda (Postgres deve
+   lidar bem com isso nativamente, mas não foi validado na prática).
+8. Desligar o notebook do Fábio não derruba o sistema pra equipe — ✅ por construção (Vercel é
+   independente de qualquer máquina do Fábio).
+9. Usuário não precisa de IP nem configuração técnica — ✅ confirmado.
 
-- Íntegro. **Não foi alterado hoje** — só lido (verificação de integridade, backup automático de
-  rotina, e o teste de boot numa porta separada).
-- Continua sendo o banco ativo em produção local (nenhuma variável `DATABASE_URL` configurada).
-- Backup automático de boot mais recente: `backups/auto-boot-2026-08-21T03-05-00-914Z/`.
+## Pendências reais (nada bloqueante, tudo incremental a partir daqui)
 
-## Situação da preparação PostgreSQL
+- Trocar o repositório GitHub de Público pra Privado.
+- Resetar a senha do banco no Supabase (a original ficou exposta no histórico do chat mais cedo
+  hoje — funciona normalmente, mas é boa prática trocar; lembrar de atualizar `DATABASE_URL` no
+  `.env.local` e nas variáveis de ambiente da Vercel depois).
+- Testar em tablet.
+- Testar dois dispositivos simultâneos.
+- Migrar fotos de base64-inline-no-JSON pra Supabase Storage (funciona do jeito atual, mas é o
+  próximo passo de escala/performance quando o volume real de uso crescer).
+- Limpar a inspeção de teste (veículo 5125/JQC9404, 21/08/2026 ~20:44) do banco de produção antes
+  de começar o uso real pela equipe — não existe botão de exclusão na interface (decisão de
+  design: nunca apagar inspeção com histórico); a forma mais simples é apagar essa linha
+  específica direto pelo Table Editor do Supabase (tabela `inspecoes`), já que é dado de teste,
+  não operacional.
+- Decidir o que fazer com o watchdog local (`scripts/start-prod.ps1`) — não é mais necessário
+  como infraestrutura de produção, mas pode continuar existindo como acesso local de
+  desenvolvimento/testes.
 
-- Código pronto e testado (compila, lint limpo, build limpo).
-- **Não conectado a nenhum banco real.** `DATABASE_URL` não está configurada em lugar nenhum.
-- Nenhuma migração foi executada. Nenhuma credencial foi solicitada, vista ou usada.
+## Regra permanente (continua valendo)
 
-## Situação do PWA
-
-- Concluído e funcionando (commit `f09c553`, dia anterior): manifest, ícones, suporte a
-  "Adicionar à Tela de Início" no Android e iOS.
-
-## Situação do PDF
-
-- Não iniciado. Fica depois de Supabase Storage + fotos, conforme ordem definida pelo Fábio.
-
-## Situação do Supabase
-
-- Projeto **criado pelo Fábio**.
-- No momento deste checkpoint, o provisionamento ainda estava em andamento no painel do Supabase.
-- Nenhuma connection string foi compartilhada, vista ou usada nesta sessão.
-
-## Situação da Vercel
-
-- **Não criada, não configurada.** Nenhuma ação tomada.
-
-## Pendências
-
-- Confirmar que o provisionamento do projeto Supabase terminou.
-- Revisar o modelo de dados Postgres (schema) com o Fábio antes de qualquer migração real.
-- Identificar qual connection string do Supabase usar para migração (porta direta 5432) e qual
-  para a aplicação em produção (pooler, porta 6543).
-- Fábio precisa cadastrar os segredos (`DATABASE_URL` etc.) localmente — nunca colados na conversa.
-- Validar backup do SQLite (rotina já ativa) e contagens de origem antes de qualquer migração.
-- Só então preparar um teste de migração — execução real só após autorização explícita.
-- Depois: Supabase Storage para fotos, geração de PDF, configuração da Vercel, testes de aceite
-  (celular, tablet, 4G/5G, uso simultâneo por dois dispositivos).
-
-## Próximo passo exato para amanhã
-
-Confirmar que o provisionamento do projeto Supabase terminou, e então revisar juntos o modelo de
-dados Postgres antes de tocar em qualquer dado real — seguindo a ordem completa definida pelo
-Fábio (ver seção "Pendências" acima, itens 1 a 12 da instrução original).
-
-## Regra permanente para esta migração
-
-O objetivo não é "colocar o sistema na nuvem" — é transformar o sistema atual em uma aplicação de
+O objetivo não foi só "colocar o sistema na nuvem" — foi transformar o sistema numa aplicação de
 produção segura, rastreável e independente de qualquer notebook, preservando os dados e a lógica
-já construída. Antes de qualquer operação irreversível (migração real, deploy, alteração de
-dados), parar e pedir autorização explícita do Fábio.
+já construída. Isso foi alcançado hoje. Daqui pra frente: qualquer alteração de schema, migração
+de dado real ou operação irreversível continua exigindo backup prévio e autorização explícita do
+Fábio antes de executar.
