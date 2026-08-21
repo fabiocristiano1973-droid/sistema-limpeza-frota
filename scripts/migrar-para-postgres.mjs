@@ -48,7 +48,12 @@ for (const sufixo of ["", "-wal", "-shm"]) {
 console.log(`Backup do SQLite de origem salvo em: ${backupDir}`);
 
 // --- 2. Conexões ---
-const sqlite = new DatabaseSync(DB_PATH, { readOnly: true });
+// NÃO usar { readOnly: true } aqui: node:sqlite falha em recuperar o WAL
+// corretamente em conexões somente-leitura quando o app (next start) está
+// rodando ao mesmo tempo com esse arquivo aberto — mesmo bug já documentado
+// e corrigido em src/lib/db/integrity-guard.ts. Conexão normal só lê de
+// qualquer forma (nenhum INSERT/UPDATE é emitido no lado SQLite abaixo).
+const sqlite = new DatabaseSync(DB_PATH);
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
 const CADASTROS = ["garagens", "tipos_limpeza", "veiculos", "inspetores", "equipes", "itens_checklist", "usuarios"];
