@@ -5,6 +5,18 @@
  * node_modules/next/dist/docs/.../instrumentation.md, seção "Specifying the runtime").
  */
 export async function registerNode() {
+  const { getDbDriver } = await import("@/lib/db/driver");
+
+  // Guarda de integridade + backup automático reforçado existem só para o
+  // incidente de perda de dados do SQLite local (ver integrity-guard.ts) —
+  // não fazem sentido com Postgres (sem arquivo local pra verificar/copiar)
+  // nem num ambiente serverless (sem disco persistente, sem setInterval
+  // sobrevivendo entre invocações).
+  if (getDbDriver() === "postgres") {
+    console.log("[boot] Driver Postgres ativo — guarda de integridade e backup automático do SQLite desativados.");
+    return;
+  }
+
   const { verificarIntegridadeBanco } = await import("@/lib/db/integrity-guard");
   const { backupAutomatico, limparBackupsAutomaticosAntigos } = await import("@/lib/db/auto-backup");
 

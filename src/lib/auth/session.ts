@@ -49,16 +49,18 @@ export function decodificarSessao(valorCookie: string | undefined): SessionPaylo
 }
 
 /**
- * Cookie sem `secure`: o sistema roda apenas em HTTP (rede local/notebook),
- * sem TLS configurado. Reavaliar quando o Objetivo 6 (acesso HTTPS externo)
- * for implementado.
+ * `secure` ligado só na Vercel (variável VERCEL=1 definida automaticamente
+ * lá) — não em NODE_ENV=production genérico, porque o watchdog local
+ * (scripts/start-prod.ps1) também roda `next start` (production build) mas
+ * em HTTP puro, na rede local, sem TLS; um cookie `secure` nesse caso
+ * nunca seria enviado de volta pelo navegador e quebraria o login local.
  */
 export async function criarSessao(dados: Omit<SessionPayload, "exp">): Promise<void> {
   const payload: SessionPayload = { ...dados, exp: Date.now() + DURACAO_MS };
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, empacotar(payload), {
     httpOnly: true,
-    secure: false,
+    secure: process.env.VERCEL === "1",
     sameSite: "lax",
     path: "/",
     maxAge: DURACAO_MS / 1000,

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { DatabaseSync } from "node:sqlite";
 import { getDataDir } from "@/lib/data-dir";
+import { getDbDriver } from "@/lib/db/driver";
 
 /**
  * Tabelas que, numa instalação já em uso, nunca deveriam aparecer ausentes
@@ -70,6 +71,7 @@ function desmarcarVerificando() {
  * como alarme prematuramente ou liberar acesso antes da hora.
  */
 export function estaVerificando(): boolean {
+  if (getDbDriver() === "postgres") return false;
   return fs.existsSync(caminhoVerificando());
 }
 
@@ -214,6 +216,11 @@ function tentarVerificar(dbPath: string): ResultadoIntegridade {
  * project_sistema_limpeza_frota.md.
  */
 export async function verificarIntegridadeBanco(): Promise<ResultadoIntegridade> {
+  // Este mecanismo inteiro existe só para o SQLite local (ver histórico
+  // acima) — não se aplica quando o driver ativo é Postgres, e não haveria
+  // nem disco persistente pra isso funcionar num ambiente serverless.
+  if (getDbDriver() === "postgres") return { ok: true };
+
   const dbPath = caminhoBanco();
 
   // Instalação nova de verdade: arquivo ainda não existe. Não é incidente,
@@ -264,6 +271,7 @@ export async function verificarIntegridadeBanco(): Promise<ResultadoIntegridade>
 
 /** Leitura rápida (sem tocar no banco) usada pelo layout em toda requisição. */
 export function lerAlertaAtivo(): AlertaAtivo | null {
+  if (getDbDriver() === "postgres") return null;
   const p = caminhoAlerta();
   if (!fs.existsSync(p)) return null;
   try {
