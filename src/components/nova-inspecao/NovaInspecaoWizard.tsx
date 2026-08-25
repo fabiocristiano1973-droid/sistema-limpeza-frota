@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProgressBar from "@/components/ProgressBar";
@@ -17,6 +17,7 @@ import {
   reconciliarItens,
   todosItensCompletos,
 } from "@/lib/wizard";
+import { carregarRascunho, salvarRascunho, limparRascunho } from "@/lib/wizard-draft";
 import { NovaInspecaoPayload, Turno } from "@/types/inspection";
 import { Equipe, Garagem, Inspetor, ItemChecklistCadastro, TipoLimpeza, Veiculo } from "@/types/cadastros";
 
@@ -37,15 +38,25 @@ export default function NovaInspecaoWizard({
 }) {
   const router = useRouter();
   const [agora] = useState(() => new Date());
-  const [step, setStep] = useState(0);
-  const [dados, setDados] = useState<DadosInspecao>({
-    veiculoId: "",
-    garagemId: "",
-    turno: "",
-    tipoLimpezaId: "",
-    inspetorId: "",
-    equipeId: "",
-  });
+
+  // Rascunho recuperado do localStorage (se existir) — protege contra perda
+  // de dados quando a página recarrega sozinha no meio da inspeção (F5,
+  // gesto de "puxar para atualizar" no celular, app reiniciado). Lido uma
+  // única vez, no primeiro render.
+  const [rascunhoInicial] = useState(() => carregarRascunho());
+  const [rascunhoRecuperado, setRascunhoRecuperado] = useState(rascunhoInicial !== null);
+
+  const [step, setStep] = useState(rascunhoInicial?.step ?? 0);
+  const [dados, setDados] = useState<DadosInspecao>(
+    rascunhoInicial?.dados ?? {
+      veiculoId: "",
+      garagemId: "",
+      turno: "",
+      tipoLimpezaId: "",
+      inspetorId: "",
+      equipeId: "",
+    }
+  );
 
   const veiculoSelecionado = veiculos.find((v) => v.id === dados.veiculoId) ?? null;
 
@@ -59,7 +70,9 @@ export default function NovaInspecaoWizard({
   const categorias = useMemo(() => categoriasDoCatalogo(itensAplicaveis), [itensAplicaveis]);
   const TOTAL_STEPS = 1 + categorias.length + 1; // dados + categorias + finalização
 
-  const [itens, setItens] = useState<ItemEditState[]>(() => criarItensIniciais(itensAplicaveis));
+  const [itens, setItens] = useState<ItemEditState[]>(
+    () => rascunhoInicial?.itens ?? criarItensIniciais(itensAplicaveis)
+  );
 
   // Reconcilia as respostas já preenchidas sempre que o conjunto aplicável
   // muda (ex.: troca de veículo ainda na etapa de dados). Ajuste de estado
@@ -75,6 +88,23 @@ export default function NovaInspecaoWizard({
   const [tentouAvancar, setTentouAvancar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+
+  // Salva o rascunho a cada mudança relevante — é a proteção contra a
+  // inspeção inteira sumir se a página recarregar sozinha no meio do
+  // trabalho. Não salva enquanto está enviando/já enviou (nesse ponto o
+  // rascunho já foi limpo por salvarInspecao()).
+  useEffect(() => {
+    if (enviando) return;
+    salvarRascunho({ dados, itens, step });
+  }, [dados, itens, step, enviando]);
+
+  function descartarRascunho() {
+    limparRascunho();
+    setRascunhoRecuperado(false);
+    setDados({ veiculoId: "", garagemId: "", turno: "", tipoLimpezaId: "", inspetorId: "", equipeId: "" });
+    setStep(0);
+    setItens(criarItensIniciais(itensAplicaveis));
+  }
 
   const isDadosStep = step === 0;
   const isFinalStep = step === TOTAL_STEPS - 1;
@@ -157,6 +187,7 @@ export default function NovaInspecaoWizard({
         throw new Error(body.erro || "Não foi possível salvar a inspeção.");
       }
       const criada = await res.json();
+      limparRascunho();
       router.push(`/inspecoes/${criada.id}?nova=1`);
     } catch (err) {
       setErroEnvio(err instanceof Error ? err.message : "Erro inesperado ao salvar.");
@@ -198,6 +229,18 @@ export default function NovaInspecaoWizard({
       </header>
 
       <main className="mx-auto w-full max-w-md flex-1 px-4 py-5 pb-28">
+        {rascunhoRecuperado && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
+            <span>📝 Rascunho recuperado — a página deve ter recarregado antes de você salvar.</span>
+            <button
+              type="button"
+              onClick={descartarRascunho}
+              className="shrink-0 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-300"
+            >
+              Começar do zero
+            </button>
+          </div>
+        )}
         {isDadosStep && (
           <DadosForm
             dados={dados}

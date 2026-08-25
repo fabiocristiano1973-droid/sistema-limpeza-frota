@@ -4,8 +4,12 @@ import { useRef, useState } from "react";
 import { ItemEditState, itemEstaCompleto } from "@/lib/wizard";
 import { Criticidade, StatusItem } from "@/types/inspection";
 import EvidenciaPreview from "@/components/EvidenciaPreview";
+import { comprimirImagem } from "@/lib/comprimir-imagem";
 
-const TAMANHO_MAXIMO_EVIDENCIA = 20 * 1024 * 1024; // 20MB
+// Tamanho do arquivo ORIGINAL escolhido, antes de comprimir — só pra não
+// travar o navegador tentando processar algo absurdo. O que importa pro
+// payload da inspeção é o tamanho DEPOIS da compressão (ver comprimir-imagem.ts).
+const TAMANHO_MAXIMO_ORIGINAL = 20 * 1024 * 1024; // 20MB
 
 const OPCOES: { status: StatusItem; label: string; emoji: string }[] = [
   { status: "CONFORME", label: "Conforme", emoji: "✅" },
@@ -33,6 +37,7 @@ export default function ChecklistItemCard({
   const completo = itemEstaCompleto(item);
   const pendente = Boolean(destacarPendente && !completo);
   const [erroEvidencia, setErroEvidencia] = useState<string | null>(null);
+  const [comprimindo, setComprimindo] = useState(false);
 
   const precisaFotoAgora = item.exigeFoto && item.status !== null && item.status !== "NA";
 
@@ -84,23 +89,29 @@ export default function ChecklistItemCard({
     });
   }
 
-  function onEvidenciaSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onEvidenciaSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setErroEvidencia(null);
 
-    if (file.size > TAMANHO_MAXIMO_EVIDENCIA) {
-      setErroEvidencia("Arquivo muito grande (máximo 20MB). Escolha uma foto ou um vídeo mais curto.");
+    if (file.size > TAMANHO_MAXIMO_ORIGINAL) {
+      setErroEvidencia("Arquivo muito grande (máximo 20MB). Escolha uma foto menor.");
       e.target.value = "";
       return;
     }
 
-    const tipo = file.type.startsWith("video/") ? "VIDEO" : "FOTO";
-    const reader = new FileReader();
-    reader.onload = () => {
-      onChange({ ...item, fotoDataUrl: reader.result as string, evidenciaTipo: tipo });
-    };
-    reader.readAsDataURL(file);
+    setComprimindo(true);
+    try {
+      // Comprime no aparelho antes de anexar — evita passar do limite de
+      // tamanho da requisição ao salvar (ver comprimir-imagem.ts).
+      const dataUrl = await comprimirImagem(file);
+      onChange({ ...item, fotoDataUrl: dataUrl, evidenciaTipo: "FOTO" });
+    } catch {
+      setErroEvidencia("Não foi possível processar essa foto. Tente outra.");
+    } finally {
+      setComprimindo(false);
+      e.target.value = "";
+    }
   }
 
   function removerEvidencia() {
@@ -110,18 +121,14 @@ export default function ChecklistItemCard({
   const blocoEvidencia = (obrigatoria: boolean) => (
     <div className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-slate-700">
-        Foto ou vídeo / Evidência {obrigatoria ? <span className="text-red-500">*</span> : "(opcional)"}
+        Foto / Evidência {obrigatoria ? <span className="text-red-500">*</span> : "(opcional)"}
       </span>
       {item.fotoDataUrl ? (
         <div className="relative w-fit">
           <EvidenciaPreview
             url={item.fotoDataUrl}
             tipo={item.evidenciaTipo}
-            className={
-              item.evidenciaTipo === "VIDEO"
-                ? "h-40 w-52 rounded-xl bg-black object-cover ring-1 ring-slate-300"
-                : "h-28 w-28 rounded-xl object-cover ring-1 ring-slate-300"
-            }
+            className="h-28 w-28 rounded-xl object-cover ring-1 ring-slate-300"
           />
           <button
             type="button"
@@ -135,20 +142,21 @@ export default function ChecklistItemCard({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className={`flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium ${
+          disabled={comprimindo}
+          className={`flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium disabled:opacity-60 ${
             obrigatoria && destacarPendente
               ? "bg-red-50 text-red-700 ring-1 ring-red-300"
               : "bg-slate-100 text-slate-700 ring-1 ring-slate-300"
           }`}
         >
-          📷🎥 Adicionar foto ou vídeo
+          {comprimindo ? "Processando foto..." : "📷 Adicionar foto"}
         </button>
       )}
       {erroEvidencia && <span className="text-xs text-red-600">{erroEvidencia}</span>}
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*"
         capture="environment"
         className="hidden"
         onChange={onEvidenciaSelecionada}
@@ -203,8 +211,14 @@ export default function ChecklistItemCard({
         </div>
       )}
 
-      {item.tipoResposta !== "SELECAO" && precisaFotoAgora && (
-        <div className="mt-4 border-t border-slate-100 pt-4">{blocoEvidencia(true)}</div>
+      {/* Evidência disponível pra qualquer item assim que um status é
+          escolhido — obrigatória quando o cadastro exige (exigeFoto),
+          opcional nos demais casos. Antes só existia campo de foto pra
+          itens marcados como obrigatórios; itens comuns não tinham como
+          anexar nada, mesmo o inspetor querendo (pedido registrado no
+          checklist de campo 21-25/08/2026). */}
+      {item.tipoResposta !== "SELECAO" && item.status !== null && item.status !== "NA" && (
+        <div className="mt-4 border-t border-slate-100 pt-4">{blocoEvidencia(precisaFotoAgora)}</div>
       )}
 
       {item.status === "NAO_CONFORME" && (
@@ -245,8 +259,6 @@ export default function ChecklistItemCard({
               ))}
             </div>
           </div>
-
-          {!item.exigeFoto && blocoEvidencia(false)}
         </div>
       )}
     </div>
