@@ -362,13 +362,10 @@ const DATA = {"gerado_em":"2026-09-16","periodo":{"inicio":"2026-09-08","fim":"2
       const bh = (H - padT - padB) * (d.kml / maxV);
       const y = H - padB - bh;
       s += `<rect x="${cx - barW / 2}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="var(--accent)"/>`;
-      if (d.meta > 0) {
-        const my = H - padB - (H - padT - padB) * (d.meta / maxV);
-        s += `<line x1="${cx - barW / 2 - 4}" x2="${cx + barW / 2 + 4}" y1="${my}" y2="${my}" stroke="var(--critical)" stroke-width="2" stroke-dasharray="3,2"/>`;
-      }
-      // fundo sólido atrás do rótulo para nunca deixar a linha tracejada da meta "vazar" sobre o número
-      s += `<rect x="${cx - 15}" y="${y - 17}" width="30" height="14" fill="var(--surface-1)"/>`;
       s += `<text class="bar-label" x="${cx}" y="${y - 6}" text-anchor="middle">${d.kml.toFixed(2)}</text>`;
+      if (d.meta > 0) {
+        s += `<text x="${cx}" y="${y - 20}" font-size="10" text-anchor="middle" fill="var(--text-muted)">meta ${d.meta.toFixed(2)}</text>`;
+      }
       s += `<text x="${cx}" y="${H - padB + 16}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${d.setor}</text>`;
     });
     document.getElementById('chart-setor').innerHTML = s;
