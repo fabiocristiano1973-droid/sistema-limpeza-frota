@@ -1,0 +1,540 @@
+<title>Painel de Combustível</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page: #f9f9f7;
+    --surface-1: #ffffff;
+    --surface-2: #f3f2ee;
+    --surface-3: #eae8e2;
+    --text-primary: #14140f;
+    --text-secondary: #5a584f;
+    --text-muted: #8b887d;
+    --border: rgba(11,11,11,0.10);
+    --border-strong: rgba(11,11,11,0.16);
+    --accent: #1c5cab;
+    --accent-soft: #cde2fb;
+    --accent-strong: #104281;
+    --good: #0ca30c;
+    --good-bg: #e4f6e4;
+    --warning: #b97a00;
+    --warning-bg: #fdf0d8;
+    --serious: #c85a34;
+    --serious-bg: #fbe6de;
+    --critical: #b32d2d;
+    --critical-bg: #fbdede;
+    --grid: #e1e0d9;
+    --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 4px 16px rgba(20,20,15,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page: #101010;
+      --surface-1: #191918;
+      --surface-2: #1f1f1d;
+      --surface-3: #292925;
+      --text-primary: #f5f4f0;
+      --text-secondary: #c3c2b7;
+      --text-muted: #8b887d;
+      --border: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.16);
+      --accent: #3987e5;
+      --accent-soft: #184f95;
+      --accent-strong: #86b6ef;
+      --good: #2fbf4f;
+      --good-bg: #163019;
+      --warning: #e0a52a;
+      --warning-bg: #33270e;
+      --serious: #e07a52;
+      --serious-bg: #35201a;
+      --critical: #e66767;
+      --critical-bg: #3a1a1a;
+      --grid: #2c2c2a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page: #101010;
+    --surface-1: #191918;
+    --surface-2: #1f1f1d;
+    --surface-3: #292925;
+    --text-primary: #f5f4f0;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8b887d;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.16);
+    --accent: #3987e5;
+    --accent-soft: #184f95;
+    --accent-strong: #86b6ef;
+    --good: #2fbf4f;
+    --good-bg: #163019;
+    --warning: #e0a52a;
+    --warning-bg: #33270e;
+    --serious: #e07a52;
+    --serious-bg: #35201a;
+    --critical: #e66767;
+    --critical-bg: #3a1a1a;
+    --grid: #2c2c2a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-page); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 16px; padding-block: 20px 60px;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: 4px; }
+  header.top h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  header.top .meta { font-size: 12.5px; color: var(--text-secondary); }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; }
+
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .section { margin-top: 22px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .section-head h2 { font-size: 15px; font-weight: 700; }
+  .section-head .hint { font-size: 12px; color: var(--text-muted); }
+
+  /* filters */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .filters label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); display: block; margin-bottom: 3px; }
+  .filters select, .filters input[type=search] {
+    font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-primary);
+    min-width: 150px;
+  }
+  .filters .fgroup { display: flex; flex-direction: column; }
+  .filters button.reset {
+    font: inherit; font-size: 12.5px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-strong);
+    background: transparent; color: var(--text-secondary); cursor: pointer; align-self: flex-end;
+  }
+  .filters button.reset:hover { background: var(--surface-2); }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .kpi .label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; }
+  .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .kpi .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+  .kpi.accent .value { color: var(--accent-strong); }
+  .kpi.warn .value { color: var(--serious); }
+  .kpi.good .value { color: var(--good); }
+
+  .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  svg text { fill: var(--text-secondary); font-family: system-ui, -apple-system, sans-serif; }
+  .axis-line { stroke: var(--grid); stroke-width: 1; }
+  .bar-label { font-size: 11px; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .chart-title { font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+  .chart-note { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-secondary); margin-top: 8px; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  /* heatmap */
+  .heatmap-scroll { overflow-x: auto; }
+  table.heatmap { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.heatmap th, table.heatmap td { padding: 0; text-align: left; }
+  table.heatmap th.rowh, table.heatmap td.rowh {
+    position: sticky; left: 0; background: var(--surface-1); padding: 5px 10px 5px 2px;
+    white-space: nowrap; font-size: 12px; border-right: 1px solid var(--border);
+  }
+  table.heatmap th.colh { font-size: 10.5px; color: var(--text-muted); font-weight: 600; text-align: center; padding: 4px 2px; white-space: nowrap; }
+  table.heatmap td.cell { width: 34px; height: 26px; text-align: center; padding: 2px; }
+  table.heatmap td.cell .box { width: 100%; height: 100%; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+  .box.rep { background: var(--good-bg); color: var(--good); }
+  .box.trac { background: var(--critical-bg); color: var(--critical); }
+  .box.none { background: var(--surface-2); color: var(--text-muted); }
+  .rowh .cls { display: inline-block; font-size: 9.5px; padding: 1px 6px; border-radius: 999px; margin-left: 6px; font-weight: 600; }
+
+  /* status pill */
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.good { background: var(--good-bg); color: var(--good); }
+  .pill.warn { background: var(--warning-bg); color: var(--warning); }
+  .pill.serious { background: var(--serious-bg); color: var(--serious); }
+  .pill.critical { background: var(--critical-bg); color: var(--critical); }
+  .pill.muted { background: var(--surface-2); color: var(--text-muted); }
+
+  /* table */
+  .table-scroll { overflow-x: auto; }
+  table.data { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.data th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted);
+    border-bottom: 1px solid var(--border-strong); padding: 8px 10px; white-space: nowrap; cursor: pointer; user-select: none; }
+  table.data th:hover { color: var(--text-primary); }
+  table.data td { padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.data tbody tr:hover { background: var(--surface-2); }
+  table.data td.num { text-align: right; }
+
+  footer.note { margin-top: 28px; font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+  footer.note b { color: var(--text-secondary); }
+  .badge-count { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>⛽ Gestão de Média de Combustível — ROTA Transportes / Itabuna</h1>
+    <div class="meta">Boletim de telemetria: 08/09/2026 a 14/09/2026 · Frota válida = Base_Frota</div>
+  </header>
+  <div class="subtitle">km/L calculado por <b>km ÷ litros</b> nos dias em que a telemetria reportou (nunca pela média das médias diárias). Economia sempre apresentada como <b>estimativa</b>.</div>
+
+  <div class="panel filters" id="filters">
+    <div class="fgroup"><label for="f-setor">Unidade (Setor)</label><select id="f-setor"></select></div>
+    <div class="fgroup"><label for="f-fb">Modelo/Fabricante</label><select id="f-fb"></select></div>
+    <div class="fgroup"><label for="f-classe">Classificação de reporte</label><select id="f-classe"></select></div>
+    <div class="fgroup"><label for="f-search">Veículo (placa/prefixo)</label><input type="search" id="f-search" placeholder="ex: R7085 ou OZT9896"></div>
+    <button class="reset" id="f-reset">Limpar filtros</button>
+    <span class="badge-count" id="f-count"></span>
+  </div>
+
+  <section class="section">
+    <div class="kpi-grid" id="kpis"></div>
+  </section>
+
+  <section class="section grid-2">
+    <div class="panel">
+      <div class="chart-title">km/L real vs. meta por Unidade Operacional</div>
+      <div class="chart-note">Barras: km/L real (km em dias com reporte ÷ litros). Marcador: meta do grupo (mediana sugerida).</div>
+      <svg id="chart-setor" width="100%" viewBox="0 0 620 240" preserveAspectRatio="xMinYMin meet"></svg>
+    </div>
+    <div class="panel">
+      <div class="chart-title">Continuidade do reporte de telemetria</div>
+      <div class="chart-note">Veículos válidos, por classificação (filtro atual)</div>
+      <svg id="chart-classe" width="100%" viewBox="0 0 400 240" preserveAspectRatio="xMinYMin meet"></svg>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="panel">
+      <div class="chart-title">km/L médio diário da frota (dias com reporte)</div>
+      <div class="chart-note">Agregado por dia: soma dos km ÷ soma dos litros de todos os veículos que reportaram naquele dia</div>
+      <svg id="chart-linha" width="100%" viewBox="0 0 1180 180" preserveAspectRatio="xMinYMin meet"></svg>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Mapa de calor — continuidade do reporte por veículo/dia</h2>
+      <span class="hint">Verde = média numérica reportada · Vermelho = tracinho (telemetria não importou) · Cinza = sem linha no boletim naquele dia</span>
+    </div>
+    <div class="panel heatmap-scroll">
+      <table class="heatmap" id="heatmap"></table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Ranking de oportunidades — maior economia potencial estimada</h2>
+      <span class="hint">Top 15 do filtro atual, por R$ de economia potencial (km/L abaixo da meta)</span>
+    </div>
+    <div class="panel table-scroll">
+      <table class="data" id="rank-table"></table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Análise por veículo — tabela completa</h2>
+      <span class="hint">Clique nos cabeçalhos para ordenar</span>
+    </div>
+    <div class="panel table-scroll">
+      <table class="data" id="full-table"></table>
+    </div>
+  </section>
+
+  <footer class="note">
+    <p><b>Frota válida:</b> apenas veículos cadastrados na aba Base_Frota, cruzados pela placa (com apoio do prefixo em caso de divergência). 192 registros do boletim não constam na Base_Frota e foram mantidos fora desta análise (aba Excluídos da planilha) — recomenda-se atualizar o cadastro da frota, pois ele cobre hoje apenas <span id="note-pct-frota"></span>% dos veículos que efetivamente rodaram na semana.</p>
+    <p><b>Preço do diesel</b> usado nos cálculos de custo/economia: R$ <span id="note-preco"></span>/L — valor de referência não informado na base de telemetria; ajuste na planilha (aba Metas) para o preço real pago pela empresa.</p>
+    <p><b>Metas</b> exibidas são sugestões iniciais (mediana de km/L do próprio grupo Modelo×Setor nesta semana) — substitua pela meta oficial quando disponível. Economia potencial é sempre uma <b>estimativa</b>, nunca um resultado garantido, e nenhuma causa mecânica ou responsabilidade de motorista foi atribuída nesta análise.</p>
+  </footer>
+</div>
+
+<script>
+const DATA = __DATA_JSON__;
+</script>
+<script>
+(function () {
+  "use strict";
+  const veiculos = DATA.veiculos;
+  const daily = DATA.daily;
+  const resumo = DATA.resumo;
+  const dias = [...new Set(daily.map(d => d.data))].sort();
+
+  document.getElementById('note-preco').textContent = DATA.diesel_price.toFixed(2).replace('.', ',');
+  const pctFrota = Math.round(100 * resumo.total_validos_presentes_boletim / (resumo.total_validos_presentes_boletim + resumo.excluidos_total));
+  document.getElementById('note-pct-frota').textContent = pctFrota;
+
+  const CLASS_STYLE = {
+    'Reporte contínuo': { pill: 'good', short: 'Contínuo' },
+    'Reporte retomado / aparente correção': { pill: 'warn', short: 'Retomado' },
+    'Intermitente': { pill: 'serious', short: 'Intermitente' },
+    'Deixou de reportar': { pill: 'critical', short: 'Deixou de reportar' },
+    'Sem reporte em todo o período observado': { pill: 'critical', short: 'Sem reporte (total)' },
+    'Dados insuficientes ou inconsistentes': { pill: 'muted', short: 'Insuficiente' },
+  };
+  const STATUS_STYLE = {
+    'Acima da meta': 'good', 'Na meta': 'good', 'Abaixo da meta': 'warn',
+    'Crítico: abaixo da meta': 'critical', 'Sem meta definida': 'muted', 'Sem dados suficientes': 'muted',
+  };
+
+  // ---------- filter controls ----------
+  const setores = [...new Set(veiculos.map(v => v.setor))].sort();
+  const fbs = [...new Set(veiculos.map(v => v.fb))].sort();
+  const classes = [...new Set(veiculos.map(v => v.classificacao))];
+
+  function fillSelect(id, items, allLabel) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = `<option value="">${allLabel}</option>` + items.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+  fillSelect('f-setor', setores, 'Todas as unidades');
+  fillSelect('f-fb', fbs, 'Todos os modelos');
+  fillSelect('f-classe', classes.sort(), 'Todas as classificações');
+
+  const state = { setor: '', fb: '', classe: '', search: '' };
+  let sortState = { table: null, key: null, dir: 1 };
+
+  function applyFilters() {
+    return veiculos.filter(v =>
+      (!state.setor || v.setor === state.setor) &&
+      (!state.fb || v.fb === state.fb) &&
+      (!state.classe || v.classificacao === state.classe) &&
+      (!state.search || (v.placa + ' ' + v.prefixo).toUpperCase().includes(state.search.toUpperCase()))
+    );
+  }
+
+  function fmt(n, d = 0) { return n === null || n === undefined || n === '' ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function fmtR(n) { return n === null || n === undefined ? '—' : 'R$ ' + fmt(n, 2); }
+  function fmtPct(n) { return n === null || n === undefined ? '—' : (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%'; }
+
+  // ---------- KPIs ----------
+  function renderKPIs(rows) {
+    const kmRep = rows.reduce((s, v) => s + v.km_reportado, 0);
+    const kmTot = rows.reduce((s, v) => s + v.km_total, 0);
+    const lit = rows.reduce((s, v) => s + v.litros_reportado, 0);
+    const custo = rows.reduce((s, v) => s + v.custo_total, 0);
+    const econR = rows.reduce((s, v) => s + v.economia_r, 0);
+    const econL = rows.reduce((s, v) => s + v.economia_l, 0);
+    const kml = lit > 0 ? kmRep / lit : null;
+    const semReporte = rows.filter(v => v.classificacao === 'Sem reporte em todo o período observado' || v.classificacao === 'Deixou de reportar').length;
+    const cards = [
+      ['Veículos no filtro', fmt(rows.length), '', ''],
+      ['Km rodados (dias c/ reporte)', fmt(kmRep), 'de ' + fmt(kmTot) + ' km totais', ''],
+      ['Litros consumidos', fmt(lit), '', ''],
+      ['Km/L real da frota', kml ? fmt(kml, 2) : '—', 'km ÷ litros do grupo', 'accent'],
+      ['Custo total diesel', fmtR(custo), 'a R$ ' + DATA.diesel_price.toFixed(2).replace('.', ',') + '/L (referência)', ''],
+      ['Economia potencial', fmtR(econR), fmt(econL, 0) + ' L estimados', 'good'],
+      ['Sem reporte / deixaram de reportar', fmt(semReporte), 'de ' + rows.length + ' veículos', semReporte > 0 ? 'warn' : ''],
+    ];
+    document.getElementById('kpis').innerHTML = cards.map(([l, v, s, cls]) =>
+      `<div class="kpi ${cls}"><div class="label">${l}</div><div class="value">${v}</div>${s ? `<div class="sub">${s}</div>` : ''}</div>`
+    ).join('');
+  }
+
+  // ---------- SVG bar chart: km/L by setor ----------
+  function renderSetorChart(rows) {
+    const bySetor = {};
+    setores.forEach(s => bySetor[s] = { km: 0, l: 0, metas: [] });
+    rows.forEach(v => {
+      if (!bySetor[v.setor]) return;
+      bySetor[v.setor].km += v.km_reportado; bySetor[v.setor].l += v.litros_reportado;
+      if (v.meta) bySetor[v.setor].metas.push(v.meta);
+    });
+    const data = setores.map(s => ({
+      setor: s, kml: bySetor[s].l > 0 ? bySetor[s].km / bySetor[s].l : 0,
+      meta: bySetor[s].metas.length ? bySetor[s].metas.reduce((a, b) => a + b, 0) / bySetor[s].metas.length : 0,
+    }));
+    const W = 620, H = 240, padL = 36, padB = 28, padT = 10, padR = 14;
+    const maxV = Math.max(3.5, ...data.map(d => Math.max(d.kml, d.meta))) * 1.15;
+    const bw = (W - padL - padR) / data.length;
+    let s = '';
+    for (let g = 0; g <= 3; g++) {
+      const y = padT + (H - padT - padB) * (1 - g / 3);
+      s += `<line class="axis-line" x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}"/>`;
+      s += `<text x="${padL - 6}" y="${y + 3}" font-size="10" text-anchor="end">${(maxV * g / 3).toFixed(1)}</text>`;
+    }
+    data.forEach((d, i) => {
+      const cx = padL + bw * i + bw / 2;
+      const barW = Math.min(48, bw * 0.42);
+      const bh = (H - padT - padB) * (d.kml / maxV);
+      const y = H - padB - bh;
+      s += `<rect x="${cx - barW / 2}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="var(--accent)"/>`;
+      s += `<text class="bar-label" x="${cx}" y="${y - 6}" text-anchor="middle">${d.kml.toFixed(2)}</text>`;
+      if (d.meta > 0) {
+        const my = H - padB - (H - padT - padB) * (d.meta / maxV);
+        s += `<line x1="${cx - barW / 2 - 4}" x2="${cx + barW / 2 + 4}" y1="${my}" y2="${my}" stroke="var(--critical)" stroke-width="2" stroke-dasharray="3,2"/>`;
+      }
+      s += `<text x="${cx}" y="${H - padB + 16}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${d.setor}</text>`;
+    });
+    document.getElementById('chart-setor').innerHTML = s;
+  }
+
+  // ---------- SVG donut-ish bar: classificação ----------
+  function renderClasseChart(rows) {
+    const order = ['Reporte contínuo', 'Reporte retomado / aparente correção', 'Intermitente', 'Deixou de reportar', 'Sem reporte em todo o período observado', 'Dados insuficientes ou inconsistentes'];
+    const counts = order.map(c => rows.filter(v => v.classificacao === c).length);
+    const colors = { 'Reporte contínuo': 'var(--good)', 'Reporte retomado / aparente correção': 'var(--warning)', 'Intermitente': 'var(--serious)', 'Deixou de reportar': 'var(--critical)', 'Sem reporte em todo o período observado': 'var(--critical)', 'Dados insuficientes ou inconsistentes': 'var(--text-muted)' };
+    const W = 400, H = 240, padL = 8, padB = 10, padT = 10, rowH = 34;
+    let s = '';
+    const max = Math.max(1, ...counts);
+    order.forEach((c, i) => {
+      const y = padT + i * rowH;
+      const bw = (W - 190) * (counts[i] / max);
+      s += `<text x="${padL}" y="${y + 15}" font-size="11" fill="var(--text-secondary)">${CLASS_STYLE[c].short}</text>`;
+      s += `<rect x="150" y="${y + 4}" width="${Math.max(2, bw)}" height="16" rx="4" fill="${colors[c]}"/>`;
+      s += `<text x="${150 + bw + 8}" y="${y + 15}" font-size="11" fill="var(--text-primary)" font-weight="600">${counts[i]}</text>`;
+    });
+    document.getElementById('chart-classe').innerHTML = s;
+  }
+
+  // ---------- SVG line chart: km/L diário da frota ----------
+  function renderLineChart(rows) {
+    const prefSet = new Set(rows.map(v => v.prefixo));
+    const perDay = dias.map(d => {
+      const recs = daily.filter(r => r.data === d && prefSet.has(r.prefixo) && r.reportou);
+      const km = recs.reduce((s, r) => s + (r.dist || 0), 0);
+      const l = recs.reduce((s, r) => s + (r.litros || 0), 0);
+      return { data: d, kml: l > 0 ? km / l : null, n: recs.length };
+    });
+    const W = 1180, H = 180, padL = 40, padR = 20, padT = 16, padB = 30;
+    const vals = perDay.map(p => p.kml).filter(v => v !== null);
+    const maxV = Math.max(3.5, ...vals) * 1.15, minV = 0;
+    const stepX = (W - padL - padR) / (dias.length - 1);
+    let s = '';
+    for (let g = 0; g <= 3; g++) {
+      const y = padT + (H - padT - padB) * (1 - g / 3);
+      s += `<line class="axis-line" x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}"/>`;
+      s += `<text x="${padL - 8}" y="${y + 3}" font-size="10" text-anchor="end">${(maxV * g / 3).toFixed(1)}</text>`;
+    }
+    let path = '', area = '';
+    perDay.forEach((p, i) => {
+      const x = padL + stepX * i;
+      const y = p.kml === null ? null : padT + (H - padT - padB) * (1 - p.kml / maxV);
+      if (y !== null) { path += (path ? 'L' : 'M') + x + ',' + y + ' '; area += (area ? 'L' : 'M') + x + ',' + y + ' '; }
+      const wd = new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+      s += `<text x="${x}" y="${H - padB + 18}" font-size="10.5" text-anchor="middle" fill="var(--text-secondary)">${wd}</text>`;
+      if (y !== null) {
+        s += `<circle cx="${x}" cy="${y}" r="4" fill="var(--accent)" stroke="var(--surface-1)" stroke-width="2"/>`;
+        s += `<text x="${x}" y="${y - 10}" font-size="10.5" text-anchor="middle" fill="var(--text-primary)" font-weight="600">${p.kml.toFixed(2)}</text>`;
+      }
+    });
+    if (area) { area += `L${padL + stepX * (dias.length - 1)},${H - padB} L${padL},${H - padB} Z`; s = `<path d="${area}" fill="var(--accent)" opacity="0.08"/>` + s; }
+    s += `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    document.getElementById('chart-linha').innerHTML = s;
+  }
+
+  // ---------- Heatmap ----------
+  function renderHeatmap(rows) {
+    const sorted = [...rows].sort((a, b) => {
+      const order = { 'Deixou de reportar': 0, 'Sem reporte em todo o período observado': 1, 'Intermitente': 2, 'Reporte retomado / aparente correção': 3, 'Reporte contínuo': 4, 'Dados insuficientes ou inconsistentes': 5 };
+      return (order[a.classificacao] ?? 9) - (order[b.classificacao] ?? 9);
+    });
+    let head = '<thead><tr><th class="rowh colh" style="text-align:left">Veículo</th>' +
+      dias.map(d => `<th class="colh">${new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}<br>${d.slice(8)}/${d.slice(5, 7)}</th>`).join('') + '</tr></thead>';
+    let body = '<tbody>';
+    sorted.forEach(v => {
+      const recs = {};
+      daily.filter(r => r.prefixo === v.prefixo).forEach(r => recs[r.data] = r);
+      const st = CLASS_STYLE[v.classificacao] || { pill: 'muted', short: v.classificacao };
+      body += `<tr><td class="rowh">${v.prefixo} <span style="color:var(--text-muted)">${v.placa}</span><span class="cls pill ${st.pill}">${st.short}</span></td>`;
+      dias.forEach(d => {
+        const r = recs[d];
+        if (!r) body += `<td class="cell"><div class="box none">·</div></td>`;
+        else if (r.reportou) body += `<td class="cell" title="${d}: ${r.media} Km/L, ${fmt(r.dist,1)} km"><div class="box rep">✓</div></td>`;
+        else body += `<td class="cell" title="${d}: sem reporte (tracinho), ${fmt(r.dist,1)} km"><div class="box trac">–</div></td>`;
+      });
+      body += '</tr>';
+    });
+    body += '</tbody>';
+    document.getElementById('heatmap').innerHTML = head + body;
+  }
+
+  // ---------- Ranking table ----------
+  function renderRanking(rows) {
+    const top = [...rows].filter(v => v.economia_r > 0).sort((a, b) => b.economia_r - a.economia_r).slice(0, 15);
+    let h = '<thead><tr><th>#</th><th>Prefixo</th><th>Placa</th><th>Setor</th><th>Km/L real</th><th>Meta</th><th>Desvio</th><th>Economia (R$)</th><th>Status</th></tr></thead><tbody>';
+    top.forEach((v, i) => {
+      const stCls = STATUS_STYLE[v.status] || 'muted';
+      h += `<tr><td>${i + 1}</td><td>${v.prefixo}</td><td>${v.placa}</td><td>${v.setor}</td>` +
+        `<td class="num">${fmt(v.kml, 2)}</td><td class="num">${fmt(v.meta, 2)}</td><td class="num">${fmtPct(v.desvio)}</td>` +
+        `<td class="num">${fmtR(v.economia_r)}</td><td><span class="pill ${stCls}">${v.status}</span></td></tr>`;
+    });
+    h += '</tbody>';
+    if (!top.length) h += '<tbody><tr><td colspan="9" style="color:var(--text-muted)">Nenhuma oportunidade de economia no filtro atual.</td></tr></tbody>';
+    document.getElementById('rank-table').innerHTML = h;
+  }
+
+  // ---------- Full table ----------
+  const COLS = [
+    ['prefixo', 'Prefixo', 's'], ['placa', 'Placa', 's'], ['fb', 'Modelo', 's'], ['setor', 'Setor', 's'],
+    ['classificacao', 'Classificação', 's'], ['km_reportado', 'Km (reporte)', 'n'], ['litros_reportado', 'Litros', 'n'],
+    ['kml', 'Km/L real', 'n'], ['meta', 'Meta', 'n'], ['desvio', 'Desvio', 'pct'], ['custo_total', 'Custo (R$)', 'r'],
+    ['economia_r', 'Economia (R$)', 'r'], ['status', 'Status', 's'],
+  ];
+  function renderFullTable(rows) {
+    let sorted = [...rows];
+    if (sortState.table === 'full' && sortState.key) {
+      const [key, type] = COLS.find(c => c[0] === sortState.key);
+      sorted.sort((a, b) => {
+        let av = a[sortState.key], bv = b[sortState.key];
+        if (av === null || av === undefined) av = type === 'n' || type === 'r' || type === 'pct' ? -Infinity : '';
+        if (bv === null || bv === undefined) bv = type === 'n' || type === 'r' || type === 'pct' ? -Infinity : '';
+        if (typeof av === 'string') return av.localeCompare(bv) * sortState.dir;
+        return (av - bv) * sortState.dir;
+      });
+    }
+    let h = '<thead><tr>' + COLS.map(([key, label]) => `<th data-key="${key}">${label}${sortState.key === key ? (sortState.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr></thead><tbody>';
+    sorted.forEach(v => {
+      const stCls = STATUS_STYLE[v.status] || 'muted';
+      const clsSt = CLASS_STYLE[v.classificacao] || { pill: 'muted', short: v.classificacao };
+      h += '<tr>' + COLS.map(([key, label, type]) => {
+        const val = v[key];
+        if (key === 'status') return `<td><span class="pill ${stCls}">${val}</span></td>`;
+        if (key === 'classificacao') return `<td><span class="pill ${clsSt.pill}">${clsSt.short}</span></td>`;
+        if (type === 'n') return `<td class="num">${fmt(val, key === 'kml' || key === 'meta' ? 2 : 0)}</td>`;
+        if (type === 'r') return `<td class="num">${fmtR(val)}</td>`;
+        if (type === 'pct') return `<td class="num">${fmtPct(val)}</td>`;
+        return `<td>${val ?? '—'}</td>`;
+      }).join('') + '</tr>';
+    });
+    h += '</tbody>';
+    document.getElementById('full-table').innerHTML = h;
+    document.querySelectorAll('#full-table th').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.key;
+        if (sortState.key === key) sortState.dir *= -1; else { sortState.key = key; sortState.dir = 1; }
+        sortState.table = 'full';
+        renderAll();
+      });
+    });
+  }
+
+  function renderAll() {
+    const rows = applyFilters();
+    document.getElementById('f-count').textContent = rows.length + ' de ' + veiculos.length + ' veículos';
+    renderKPIs(rows);
+    renderSetorChart(rows);
+    renderClasseChart(rows);
+    renderLineChart(rows);
+    renderHeatmap(rows);
+    renderRanking(rows);
+    renderFullTable(rows);
+  }
+
+  document.getElementById('f-setor').addEventListener('change', e => { state.setor = e.target.value; renderAll(); });
+  document.getElementById('f-fb').addEventListener('change', e => { state.fb = e.target.value; renderAll(); });
+  document.getElementById('f-classe').addEventListener('change', e => { state.classe = e.target.value; renderAll(); });
+  document.getElementById('f-search').addEventListener('input', e => { state.search = e.target.value; renderAll(); });
+  document.getElementById('f-reset').addEventListener('click', () => {
+    state.setor = ''; state.fb = ''; state.classe = ''; state.search = '';
+    document.getElementById('f-setor').value = ''; document.getElementById('f-fb').value = '';
+    document.getElementById('f-classe').value = ''; document.getElementById('f-search').value = '';
+    renderAll();
+  });
+
+  renderAll();
+})();
+</script>
