@@ -81,12 +81,24 @@ for col, text in headers.items():
 note = ws_bol.cell(row=1, column=sep_col)
 note.fill = PatternFill('solid', fgColor='FFFFFF')
 
+def locale_safe_number(expr):
+    # Converte um texto numerico decimal com ponto (ex. "126.33") em numero
+    # SEM usar VALUE()/NUMBERVALUE() - em Excel configurado em pt-BR (virgula
+    # decimal), VALUE("126.33") falha (#VALUE!) porque o ponto nao e separador
+    # decimal valido nesse idioma. Aqui a parte inteira e a fracionaria sao
+    # extraidas como substrings de digitos puros (sem separador nenhum) e
+    # multiplicadas/somadas — a conversao texto->numero de um digito puro e
+    # identica em qualquer configuracao regional do Excel.
+    return (f'(LEFT({expr},FIND(".",{expr})-1)*1+'
+            f'MID({expr},FIND(".",{expr})+1,LEN({expr})-FIND(".",{expr}))/'
+            f'POWER(10,LEN({expr})-FIND(".",{expr})))')
+
 max_row = ws_bol.max_row
 for r in range(2, max_row + 1):
-    ws_bol.cell(row=r, column=h1, value=f'=IFERROR(VALUE(F{r}),"")')
-    ws_bol.cell(row=r, column=h2, value=f'=IF(R{r}="-","",IFERROR(VALUE(LEFT(Q{r},LEN(Q{r})-2)),""))')
-    ws_bol.cell(row=r, column=h3, value=f'=IF(R{r}="-","",IFERROR(VALUE(LEFT(R{r},LEN(R{r})-5)),""))')
-    ws_bol.cell(row=r, column=h4, value=f'=IF(R{r}="-","",IFERROR(VALUE(F{r}),""))')
+    ws_bol.cell(row=r, column=h1, value=f'=IFERROR({locale_safe_number(f"F{r}")},"")')
+    ws_bol.cell(row=r, column=h2, value=f'=IF(R{r}="-","",IFERROR({locale_safe_number(f"LEFT(Q{r},LEN(Q{r})-2)")},""))')
+    ws_bol.cell(row=r, column=h3, value=f'=IF(R{r}="-","",IFERROR({locale_safe_number(f"LEFT(R{r},LEN(R{r})-5)")},""))')
+    ws_bol.cell(row=r, column=h4, value=f'=IF(R{r}="-","",IFERROR({locale_safe_number(f"F{r}")},""))')
     ws_bol.cell(row=r, column=h5, value=f'=IF(R{r}="-",1,0)')
     for col in (h1, h2, h3, h4):
         ws_bol.cell(row=r, column=col).number_format = '0.00'
