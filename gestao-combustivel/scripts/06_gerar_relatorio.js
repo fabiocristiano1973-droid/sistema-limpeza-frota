@@ -46,6 +46,7 @@ function cell(text, opts = {}) {
 
 function fmt(n, d = 0) { return n === null || n === undefined ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
 function fmtR(n) { return 'R$ ' + fmt(n, 2); }
+function fmtData(iso) { const [a, m, dd] = iso.split('-'); return `${dd}/${m}/${a}`; }
 
 const kmRep = veiculos.reduce((s, v) => s + v.km_reportado, 0);
 const kmTot = veiculos.reduce((s, v) => s + v.km_total, 0);
@@ -76,7 +77,7 @@ const rankTable = new Table({
         cell(pr.placa, { width: 1600 }),
         cell(pr.classificacao, { width: 3200, color: pr.classificacao.includes('Deixou') || pr.classificacao.includes('Sem reporte') ? RED : undefined }),
         cell(fmt(pr.distancia_dias_tracinho, 1) + ' km', { width: 1500 }),
-        cell(pr.ultimo_dia, { width: 1650 }),
+        cell(fmtData(pr.ultimo_dia), { width: 1650 }),
       ],
     })),
   ],
@@ -162,8 +163,8 @@ const doc = new Document({
       p(''),
       p('Achados principais:', { bold: true }),
       bullet(`${res.classificacao_contagem['Deixou de reportar'] || 0} veículo(s) reportaram normalmente e pararam de comunicar a média, permanecendo sem reporte até o fim do período — prioridade máxima de verificação (possível falha de telemetria em curso).`),
-      bullet(`${res.classificacao_contagem['Sem reporte em todo o período observado'] || 0} veículo(s) não reportaram nenhuma média numérica na semana inteira, apesar de rodarem — alguns percorreram mais de 2.000 km sem qualquer dado de consumo capturado.`),
-      bullet(`${res.classificacao_contagem['Reporte retomado / aparente correção'] || 0} veículo(s) apresentaram uma interrupção pontual (1 dia) seguida de retomada — indício de correção, sem confirmação de manutenção registrada nesta base.`),
+      bullet(`${res.classificacao_contagem['Sem reporte em todo o período'] || 0} veículo(s) não informaram média em nenhum dia da semana, apesar de terem rodado — alguns percorreram mais de 2.000 km sem nenhum dado de consumo.`),
+      bullet(`${res.classificacao_contagem['Reporte retomado / aparente correção'] || 0} veículo(s) ficaram um dia sem média e voltaram a informar. Verificar se houve alguma intervenção — não há registro de manutenção nesta base.`),
       bullet(`${res.classificacao_contagem['Intermitente'] || 0} veículo apresentou múltiplas interrupções e retomadas na mesma semana, padrão que merece investigação de estabilidade do equipamento de telemetria.`),
       bullet(`${res.dias_com_problema_hodometro} registro(s) apresentaram inconsistência de hodômetro (variação incompatível com a distância percorrida no dia) e ${res.placas_corrompidas_no_boletim} registros trazem a placa ilegível/corrompida no arquivo de origem (mesmo veículo, prefixo R7085) — ambos sinalizados, não corrigidos automaticamente.`),
 

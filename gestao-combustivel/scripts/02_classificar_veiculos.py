@@ -13,6 +13,16 @@ def display_placa(frec):
         return f"PLACA ILEGÍVEL (cadastro corrompido — prefixo {frec['prefixo']})"
     return frec['placa']
 
+def fmt_br(d):
+    """Formata data no padrao DD/MM/AAAA."""
+    if isinstance(d, str):
+        d = datetime.date.fromisoformat(d)
+    return d.strftime('%d/%m/%Y')
+
+def periodo_br(ini, fim):
+    ini_s, fim_s = fmt_br(ini), fmt_br(fim)
+    return ini_s if ini_s == fim_s else f'{ini_s} a {fim_s}'
+
 def veh_label(gk, grows, frec=None):
     prefixos = sorted(set(str(r['prefixo']) for r in grows if r['prefixo']))
     placas = sorted(set(str(r['raw_placa']) for r in grows if r['raw_placa'] and not r['placa_corrupted']))
@@ -37,11 +47,9 @@ for fid, gks in by_frota_id.items():
     if len(gks) > 1:
         placas_vistas = sorted(set(str(r['raw_placa']) for r in combined_rows
                                     if r['raw_placa'] and not r['placa_corrupted']))
-        note = (f"ATENÇÃO: o boletim reporta {len(placas_vistas)} placas diferentes para o prefixo "
-                f"{frec['prefixo']} na mesma semana ({', '.join(placas_vistas)}); Base_Frota cadastra "
-                f"a placa {display_placa(frec)}. Possível erro de digitação/OCR na captura da placa ou troca "
-                f"de veículo sob o mesmo prefixo — os registros foram tratados como um único veículo "
-                f"(chave = prefixo) e devem ser confirmados junto à operação.")
+        note = (f"Boletim usa {len(placas_vistas)} placas para o prefixo {frec['prefixo']} na semana "
+                f"({', '.join(placas_vistas)}). Base_Frota cadastra {display_placa(frec)}. "
+                f"Verificar placa correta junto à operação.")
     consolidated[gks[0]] = dict(frec=frec, rows=combined_rows, note=note)
 
 print(f"Grupos consolidados por identidade de veiculo na Base_Frota: {len(matched)} grupos -> {len(consolidated)} veiculos unicos")
@@ -88,7 +96,7 @@ for gk, cinfo in consolidated.items():
     n_true_runs = sum(1 for rr in runs if rr['reported'])
 
     if n_true_runs == 0:
-        classificacao = 'Sem reporte em todo o período observado'
+        classificacao = 'Sem reporte em todo o período'
     elif n_false_runs == 0:
         classificacao = 'Reporte contínuo'
     elif n_false_runs == 1 and not runs[-1]['reported']:
@@ -114,7 +122,7 @@ for gk, cinfo in consolidated.items():
 
     dias_numericos = sum(1 for it in seq if it['reported'])
     dias_tracinho = sum(1 for it in seq if not it['reported'])
-    situacao_ultimo = 'Reportando (numérico)' if seq[-1]['reported'] else 'Sem reporte (tracinho)'
+    situacao_ultimo = 'Informando média' if seq[-1]['reported'] else 'Sem média'
 
     dist_dias_tracinho = 0.0
     for it in seq:
@@ -131,33 +139,43 @@ for gk, cinfo in consolidated.items():
             drow = per_day[first_dash_day][0]
             ocorrencias.append(dict(
                 data=str(first_dash_day), veiculo_prefixo=frec['prefixo'], veiculo_placa=display_placa(frec),
-                media=drow['media_raw'], distancia=drow['dist'], tipo='Início de interrupção do reporte'))
+                media=drow['media_raw'], distancia=drow['dist'], tipo='Sem média'))
         if rr['reported'] and i > 0:
             first_num_day = rr['dias'][0]
             drow = per_day[first_num_day][0]
             ocorrencias.append(dict(
                 data=str(first_num_day), veiculo_prefixo=frec['prefixo'], veiculo_placa=display_placa(frec),
-                media=drow['media_raw'], distancia=drow['dist'], tipo='Retomada do reporte (números voltam a aparecer)'))
+                media=drow['media_raw'], distancia=drow['dist'], tipo='Voltou a informar'))
 
     cobertura_dias = len(dias_ordenados)
     obs_parts = []
-    if cobertura_dias < 7:
-        obs_parts.append(f"Cobertura de apenas {cobertura_dias} dia(s) no boletim (período tem 7 dias); dias sem linha no boletim não foram tratados como interrupção.")
-    if classificacao == 'Deixou de reportar':
-        obs_parts.append(f"Reportou normalmente até {runs[-2]['dias'][-1] if len(runs)>=2 else '-'} e ficou sem reporte (tracinho) do dia {runs[-1]['dias'][0]} até o fim do período observado ({runs[-1]['dias'][-1]}).")
+    if classificacao == 'Reporte contínuo':
+        obs_parts.append("Telemetria informando normalmente.")
+    elif classificacao == 'Deixou de reportar':
+        obs_parts.append(f"Sem média desde {fmt_br(runs[-1]['dias'][0])}. Verificar telemetria/comunicação.")
     elif classificacao == 'Reporte retomado / aparente correção':
         gap = next((rr for rr in runs if not rr['reported']), None)
         if gap:
-            origem = 'desde o início do período observado' if runs[0] is gap else 'após dias com registros numéricos'
-            obs_parts.append(f"Ficou sem reporte (tracinho) de {gap['dias'][0]} a {gap['dias'][-1]} ({origem}) e voltou a apresentar números a partir de {retomadas[0]['data'] if retomadas else '-'} — indício de correção conforme regra do estudo (sem confirmação de manutenção registrada).")
+            obs_parts.append(f"Sem média em {periodo_br(gap['dias'][0], gap['dias'][-1])}. "
+                              f"Voltou a informar em {fmt_br(retomadas[0]['data']) if retomadas else '-'}. "
+                              f"Verificar se houve alguma intervenção.")
     elif classificacao == 'Intermitente':
-        obs_parts.append(f"{n_false_runs} episódios de interrupção do reporte ao longo do período; situação no último registro: {situacao_ultimo}.")
-    elif classificacao == 'Sem reporte em todo o período observado':
-        obs_parts.append("Nenhum registro numérico de média em todo o período observado (todos os dias com tracinho).")
-    elif classificacao == 'Reporte contínuo':
-        obs_parts.append("Reportou média numérica (telemetria) em todos os dias com registro no boletim.")
+        eventos = []
+        for i, rr in enumerate(runs):
+            if not rr['reported']:
+                eventos.append(f"Sem média em {periodo_br(rr['dias'][0], rr['dias'][-1])}.")
+            elif i > 0:
+                eventos.append(f"Voltou a informar em {fmt_br(rr['dias'][0])}.")
+        eventos.append("Verificar telemetria/comunicação.")
+        obs_parts.append(' '.join(eventos))
+    elif classificacao == 'Sem reporte em todo o período':
+        obs_parts.append("Não informou média em nenhum dia registrado. Verificar telemetria.")
+    else:
+        obs_parts.append("Dados insuficientes para classificar. Verificar boletim.")
+    if cobertura_dias < 7:
+        obs_parts.append(f"Há registros em {cobertura_dias} dos 7 dias. Nos demais dias não há registro no boletim.")
     if any(it['misto'] for it in seq):
-        obs_parts.append("ATENÇÃO: há dia(s) com registros simultâneos numérico e tracinho para este veículo (ver Ocorrências).")
+        obs_parts.append("Média e tracinho no mesmo dia. Ver Ocorrências.")
 
     analise.append(dict(
         placa=display_placa(frec), prefixo=frec['prefixo'], uo=frec['uo'], setor=frec['setor'],
@@ -189,7 +207,7 @@ for gk, note in unmatched.items():
         placa=placas[0] if placas else (gk[1] if gk[0]=='P' else '(ilegível)'),
         prefixo=prefixos[0] if prefixos else gk[1],
         uo_localidade=localidade,
-        periodo_registros=f"{dias_[0]} a {dias_[-1]}" if dias_ else '-',
+        periodo_registros=periodo_br(dias_[0], dias_[-1]) if dias_ else '-',
         qtd_registros=len(grows),
         motivo=note,
     ))
@@ -224,9 +242,9 @@ class_pct = {k: round(100 * v / total_validos_presentes, 1) for k, v in class_co
 excluidos_por_localidade = Counter(e['uo_localidade'] for e in excluidos)
 
 prioridade = [a for a in analise if a['classificacao'] in
-              ('Deixou de reportar', 'Sem reporte em todo o período observado', 'Intermitente')]
+              ('Deixou de reportar', 'Sem reporte em todo o período', 'Intermitente')]
 def prio_key(a):
-    ordem = {'Deixou de reportar': 0, 'Sem reporte em todo o período observado': 1, 'Intermitente': 2}
+    ordem = {'Deixou de reportar': 0, 'Sem reporte em todo o período': 1, 'Intermitente': 2}
     return (ordem.get(a['classificacao'], 9), -a['distancia_dias_tracinho'])
 prioridade.sort(key=prio_key)
 
@@ -238,8 +256,8 @@ resumo = dict(
     classificacao_percentual=class_pct,
     excluidos_total=len(excluidos),
     excluidos_por_localidade=dict(excluidos_por_localidade),
-    periodo_esperado=f"{PERIODO_INICIO} a {PERIODO_FIM}",
-    periodo_confirmado="2026-09-08 a 2026-09-14 (todas as 1628 linhas do boletim estão dentro do período esperado; nenhuma divergência de data encontrada)",
+    periodo_esperado=periodo_br(PERIODO_INICIO, PERIODO_FIM),
+    periodo_confirmado=f"Confirmado: {periodo_br(PERIODO_INICIO, PERIODO_FIM)}. Nenhuma divergência de data.",
     dias_com_problema_hodometro=sum(1 for r in rows if r['hod_issue']),
     placas_corrompidas_no_boletim=sum(1 for r in rows if r['placa_corrupted']),
     dias_mistos_detectados=len(multi_dia_flags),

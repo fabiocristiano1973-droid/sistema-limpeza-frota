@@ -273,7 +273,7 @@ const DATA = __DATA_JSON__;
     'Reporte retomado / aparente correção': { pill: 'warn', short: 'Retomado' },
     'Intermitente': { pill: 'serious', short: 'Intermitente' },
     'Deixou de reportar': { pill: 'critical', short: 'Deixou de reportar' },
-    'Sem reporte em todo o período observado': { pill: 'critical', short: 'Sem reporte (total)' },
+    'Sem reporte em todo o período': { pill: 'critical', short: 'Sem reporte (total)' },
     'Dados insuficientes ou inconsistentes': { pill: 'muted', short: 'Insuficiente' },
   };
   const STATUS_STYLE = {
@@ -309,6 +309,7 @@ const DATA = __DATA_JSON__;
   function fmt(n, d = 0) { return n === null || n === undefined || n === '' ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
   function fmtR(n) { return n === null || n === undefined ? '—' : 'R$ ' + fmt(n, 2); }
   function fmtPct(n) { return n === null || n === undefined ? '—' : (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%'; }
+  function fmtData(iso) { const [a, m, dd] = iso.split('-'); return `${dd}/${m}/${a}`; }
 
   // ---------- KPIs ----------
   function renderKPIs(rows) {
@@ -319,7 +320,7 @@ const DATA = __DATA_JSON__;
     const econR = rows.reduce((s, v) => s + v.economia_r, 0);
     const econL = rows.reduce((s, v) => s + v.economia_l, 0);
     const kml = lit > 0 ? kmRep / lit : null;
-    const semReporte = rows.filter(v => v.classificacao === 'Sem reporte em todo o período observado' || v.classificacao === 'Deixou de reportar').length;
+    const semReporte = rows.filter(v => v.classificacao === 'Sem reporte em todo o período' || v.classificacao === 'Deixou de reportar').length;
     const cards = [
       ['Veículos no filtro', fmt(rows.length), '', ''],
       ['Km rodados (dias c/ reporte)', fmt(kmRep), 'de ' + fmt(kmTot) + ' km totais', ''],
@@ -364,7 +365,8 @@ const DATA = __DATA_JSON__;
       s += `<rect x="${cx - barW / 2}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="var(--accent)"/>`;
       s += `<text class="bar-label" x="${cx}" y="${y - 6}" text-anchor="middle">${d.kml.toFixed(2)}</text>`;
       if (d.meta > 0) {
-        s += `<text x="${cx}" y="${y - 20}" font-size="10" text-anchor="middle" fill="var(--text-muted)">meta ${d.meta.toFixed(2)}</text>`;
+        const my = H - padB - (H - padT - padB) * (d.meta / maxV);
+        s += `<line x1="${cx - barW / 2 - 4}" x2="${cx + barW / 2 + 4}" y1="${my}" y2="${my}" stroke="var(--critical)" stroke-width="2" stroke-dasharray="3,2"/>`;
       }
       s += `<text x="${cx}" y="${H - padB + 16}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${d.setor}</text>`;
     });
@@ -373,9 +375,9 @@ const DATA = __DATA_JSON__;
 
   // ---------- SVG donut-ish bar: classificação ----------
   function renderClasseChart(rows) {
-    const order = ['Reporte contínuo', 'Reporte retomado / aparente correção', 'Intermitente', 'Deixou de reportar', 'Sem reporte em todo o período observado', 'Dados insuficientes ou inconsistentes'];
+    const order = ['Reporte contínuo', 'Reporte retomado / aparente correção', 'Intermitente', 'Deixou de reportar', 'Sem reporte em todo o período', 'Dados insuficientes ou inconsistentes'];
     const counts = order.map(c => rows.filter(v => v.classificacao === c).length);
-    const colors = { 'Reporte contínuo': 'var(--good)', 'Reporte retomado / aparente correção': 'var(--warning)', 'Intermitente': 'var(--serious)', 'Deixou de reportar': 'var(--critical)', 'Sem reporte em todo o período observado': 'var(--critical)', 'Dados insuficientes ou inconsistentes': 'var(--text-muted)' };
+    const colors = { 'Reporte contínuo': 'var(--good)', 'Reporte retomado / aparente correção': 'var(--warning)', 'Intermitente': 'var(--serious)', 'Deixou de reportar': 'var(--critical)', 'Sem reporte em todo o período': 'var(--critical)', 'Dados insuficientes ou inconsistentes': 'var(--text-muted)' };
     const W = 400, H = 240, padL = 8, padB = 10, padT = 10, rowH = 34;
     let s = '';
     const max = Math.max(1, ...counts);
@@ -428,7 +430,7 @@ const DATA = __DATA_JSON__;
   // ---------- Heatmap ----------
   function renderHeatmap(rows) {
     const sorted = [...rows].sort((a, b) => {
-      const order = { 'Deixou de reportar': 0, 'Sem reporte em todo o período observado': 1, 'Intermitente': 2, 'Reporte retomado / aparente correção': 3, 'Reporte contínuo': 4, 'Dados insuficientes ou inconsistentes': 5 };
+      const order = { 'Deixou de reportar': 0, 'Sem reporte em todo o período': 1, 'Intermitente': 2, 'Reporte retomado / aparente correção': 3, 'Reporte contínuo': 4, 'Dados insuficientes ou inconsistentes': 5 };
       return (order[a.classificacao] ?? 9) - (order[b.classificacao] ?? 9);
     });
     let head = '<thead><tr><th class="rowh colh" style="text-align:left">Veículo</th>' +
@@ -442,8 +444,8 @@ const DATA = __DATA_JSON__;
       dias.forEach(d => {
         const r = recs[d];
         if (!r) body += `<td class="cell"><div class="box none">·</div></td>`;
-        else if (r.reportou) body += `<td class="cell" title="${d}: ${r.media} Km/L, ${fmt(r.dist,1)} km"><div class="box rep">✓</div></td>`;
-        else body += `<td class="cell" title="${d}: sem reporte (tracinho), ${fmt(r.dist,1)} km"><div class="box trac">–</div></td>`;
+        else if (r.reportou) body += `<td class="cell" title="${fmtData(d)}: ${r.media} Km/L, ${fmt(r.dist,1)} km"><div class="box rep">✓</div></td>`;
+        else body += `<td class="cell" title="${fmtData(d)}: sem média, ${fmt(r.dist,1)} km"><div class="box trac">–</div></td>`;
       });
       body += '</tr>';
     });

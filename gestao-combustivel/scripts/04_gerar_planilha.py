@@ -9,6 +9,10 @@ from collections import defaultdict
 SRC = '../planilha/Boletim_do_Veiculo_mais_recente.xlsx'
 OUT = 'Gestao_Media_Combustivel_ROTA_Itabuna.xlsx'
 
+def br(iso_str):
+    """Converte 'AAAA-MM-DD' para 'DD/MM/AAAA' (datas do boletim)."""
+    return datetime.date.fromisoformat(iso_str).strftime('%d/%m/%Y')
+
 d = pickle.load(open('state.pkl', 'rb'))
 res = json.load(open('resultado.json'))
 agg = json.load(open('agg_vehicle.json'))
@@ -142,7 +146,7 @@ ws_meta['E4'].font = Font(name=FONT_NAME, italic=True, color='C00000', size=9)
 ws_meta['B6'] = 'Metas de eficiência por Modelo/Fabricante × Unidade Operacional (Setor)'
 ws_meta['B6'].font = Font(name=FONT_NAME, bold=True, size=11)
 ws_meta['B7'] = ('Meta inicial sugerida = mediana do km/L real dos veículos válidos do próprio grupo, apurada nesta base '
-                  '(08/09 a 14/09/2026). Ajuste manualmente para a meta oficial da empresa quando disponível.')
+                  '(08/09/2026 a 14/09/2026). Ajuste manualmente para a meta oficial da empresa quando disponível.')
 ws_meta['B7'].font = Font(name=FONT_NAME, italic=True, size=9, color='595959')
 ws_meta.merge_cells('B7:H7')
 
@@ -208,8 +212,8 @@ ws_ac.sheet_view.showGridLines = False
 ws_ac['A1'] = 'GESTÃO DE MÉDIA DE COMBUSTÍVEL — ANÁLISE POR VEÍCULO (km/L real = km ÷ litros, não média das médias)'
 ws_ac['A1'].font = TITLE_FONT
 ws_ac.merge_cells('A1:S1')
-ws_ac['A2'] = ('km/L real calculado apenas com os dias em que a telemetria reportou número (média ≠ "-"), '
-               'para não distorcer o indicador com dias sem medição. Base: Boletim 08/09 a 14/09/2026.')
+ws_ac['A2'] = ('km/L real calculado apenas com os dias em que a telemetria informou média (média ≠ "-"). '
+               'Base: Boletim 08/09/2026 a 14/09/2026.')
 ws_ac['A2'].font = Font(name=FONT_NAME, italic=True, size=9, color='595959')
 ws_ac.merge_cells('A2:S2')
 
@@ -365,7 +369,7 @@ for i, h in enumerate(hh):
     ws_p.cell(row=r_class + 1, column=2 + i, value=h)
 style_header(ws_p, r_class + 1, len(hh), start_col=2)
 classif_order = ['Reporte contínuo', 'Reporte retomado / aparente correção', 'Intermitente',
-                  'Deixou de reportar', 'Sem reporte em todo o período observado',
+                  'Deixou de reportar', 'Sem reporte em todo o período',
                   'Dados insuficientes ou inconsistentes']
 rr = r_class + 2
 for cl in classif_order:
@@ -438,17 +442,17 @@ ws_p.sheet_view.showGridLines = False
 print("Building Análise por Veículo sheet...")
 ws_av = wb.create_sheet('Análise por Veículo')
 headers_av = ['Placa', 'Prefixo', 'UO/Localidade', 'Setor', 'Classificação', 'Primeiro dia com registro',
-              'Último dia com registro', 'Dias com registro no boletim', 'Dias com média numérica',
+              'Último dia com registro', 'Dias com registro no boletim', 'Dias com média',
               'Dias com tracinho', 'Situação no último registro', 'Distância (km) nos dias com tracinho',
-              'Correspondência/ressalva de cruzamento', 'Observação objetiva']
+              'Correspondência/ressalva de cruzamento', 'Observação']
 for i, h in enumerate(headers_av):
     ws_av.cell(row=1, column=1 + i, value=h)
 style_header(ws_av, 1, len(headers_av))
 ws_av.freeze_panes = 'A2'
 r = 2
 for a in res['analise']:
-    vals = [a['placa'], a['prefixo'], a['uo'], a['setor'], a['classificacao'], a['primeiro_dia'],
-            a['ultimo_dia'], a['dias_com_registro'], a['dias_numericos'], a['dias_tracinho'],
+    vals = [a['placa'], a['prefixo'], a['uo'], a['setor'], a['classificacao'], br(a['primeiro_dia']),
+            br(a['ultimo_dia']), a['dias_com_registro'], a['dias_numericos'], a['dias_tracinho'],
             a['situacao_ultimo_registro'], a['distancia_dias_tracinho'],
             a['correspondencia_ressalva'], a['observacao']]
     for i, v in enumerate(vals):
@@ -459,7 +463,7 @@ for a in res['analise']:
     fill = None
     if a['classificacao'] == 'Deixou de reportar':
         fill = RED_FILL
-    elif a['classificacao'] == 'Sem reporte em todo o período observado':
+    elif a['classificacao'] == 'Sem reporte em todo o período':
         fill = RED_FILL
     elif a['classificacao'] == 'Intermitente':
         fill = YELLOW_FILL2
@@ -487,12 +491,12 @@ style_header(ws_oc, 1, len(headers_oc))
 ws_oc.freeze_panes = 'A2'
 r = 2
 for o in sorted(res['ocorrencias'], key=lambda x: (x['veiculo_prefixo'] or '', x['data'])):
-    vals = [o['data'], o['veiculo_prefixo'], o['veiculo_placa'], o['media'], o['distancia'], o['tipo']]
+    vals = [br(o['data']), o['veiculo_prefixo'], o['veiculo_placa'], o['media'], o['distancia'], o['tipo']]
     for i, v in enumerate(vals):
         c = ws_oc.cell(row=r, column=1 + i, value=v)
         c.font = Font(name=FONT_NAME, size=10)
         c.border = BORDER
-    if 'Início' in o['tipo']:
+    if o['tipo'] == 'Sem média':
         ws_oc.cell(row=r, column=6).fill = RED_FILL
     else:
         ws_oc.cell(row=r, column=6).fill = GREEN_FILL
@@ -528,7 +532,7 @@ autofit(ws_ex, [13, 10, 26, 20, 15, 60])
 # ============================================================
 print("Building Sem_Registro_Boletim sheet...")
 ws_sb = wb.create_sheet('Sem_Registro_Boletim')
-ws_sb['A1'] = 'Veículos da Base_Frota que NÃO possuem nenhum registro no boletim do período (08/09 a 14/09/2026).'
+ws_sb['A1'] = 'Veículos da Base_Frota sem nenhum registro no boletim de 08/09/2026 a 14/09/2026.'
 ws_sb['A1'].font = Font(name=FONT_NAME, italic=True, size=9, color='595959')
 ws_sb.merge_cells('A1:D1')
 headers_sb = ['Placa', 'Prefixo', 'UO', 'Setor']
@@ -610,18 +614,17 @@ for loc, qtd in resumo['excluidos_por_localidade'].items():
 
 r += 1
 ws_r.cell(row=r, column=2,
-          value='Lista prioritária de investigação — veículos que rodaram sem reportar média '
-                '(ordenado por classificação de risco e distância percorrida sem reporte)').font = Font(name=FONT_NAME, bold=True, size=11)
+          value='Prioridade de verificação — veículos que rodaram sem enviar média').font = Font(name=FONT_NAME, bold=True, size=11)
 ws_r.merge_cells(start_row=r, start_column=2, end_row=r, end_column=6)
 r += 1
-hh4 = ['Prefixo', 'Placa', 'Classificação', 'Situação no último registro', 'Km nos dias com tracinho', 'Último dia com registro']
+hh4 = ['Prefixo', 'Placa', 'Classificação', 'Situação atual', 'Km sem média', 'Último dia com registro']
 for i, h in enumerate(hh4):
     ws_r.cell(row=r, column=2 + i, value=h)
 style_header(ws_r, r, len(hh4), start_col=2)
 r += 1
 for p in res['prioridade_investigacao']:
     vals = [p['prefixo'], p['placa'], p['classificacao'], p['situacao_ultimo_registro'],
-            p['distancia_dias_tracinho'], p['ultimo_dia']]
+            p['distancia_dias_tracinho'], br(p['ultimo_dia'])]
     for i, v in enumerate(vals):
         c = ws_r.cell(row=r, column=2 + i, value=v)
         c.font = Font(name=FONT_NAME, size=10)
@@ -629,16 +632,16 @@ for p in res['prioridade_investigacao']:
     r += 1
 
 r += 2
-ws_r.cell(row=r, column=2, value='Regras e limitações desta análise').font = Font(name=FONT_NAME, bold=True, size=11)
+ws_r.cell(row=r, column=2, value='Regras desta análise').font = Font(name=FONT_NAME, bold=True, size=11)
 r += 1
 regras_texto = [
-    '• "-" (tracinho) na Média de Consumo = telemetria não importou a média naquele registro (sem comunicação/sem dado).',
-    '• Qualquer valor numérico, inclusive 0,00, conta como reporte (comunicação ocorreu).',
-    '• Datas sem linha no boletim NÃO foram tratadas como interrupção — apenas a sequência de dias efetivamente registrados foi avaliada.',
-    '• Retomada de números após tracinho é tratada como indício de correção, sem confirmação de manutenção (não há registro de OS nesta base).',
-    '• Não foi atribuída causa mecânica nem responsabilidade ao motorista em nenhuma classificação.',
-    '• km/L é sempre calculado por (km totais ÷ litros totais) no grupo/veículo — nunca pela média simples das médias diárias.',
-    '• Frota válida = exclusivamente veículos cadastrados na aba Base_Frota, cruzados pela Placa (normalizada) e, em caso de divergência, pelo Prefixo.',
+    '• "-" = telemetria não importou a média (sem comunicação).',
+    '• Qualquer número, inclusive 0,00, conta como média informada.',
+    '• Dia sem linha no boletim não conta como falha — só os dias registrados foram avaliados.',
+    '• Voltar a informar não confirma manutenção feita. Verificar sempre em campo.',
+    '• Nenhuma causa mecânica ou responsabilidade de motorista foi atribuída.',
+    '• Km/L = km totais ÷ litros totais do veículo/grupo, nunca a média das médias diárias.',
+    '• Frota válida = veículos cadastrados na Base_Frota, cruzados pela Placa e, em caso de divergência, pelo Prefixo.',
 ]
 for t in regras_texto:
     ws_r.cell(row=r, column=2, value=t).font = Font(name=FONT_NAME, size=9)

@@ -21,6 +21,20 @@ gestao-combustivel/
 Todos os quatro entregáveis (planilha, painel, relatório, apresentação) usam a
 **mesma base de dados** e os mesmos números — não são análises independentes.
 
+## Padrão de comunicação (obrigatório em toda atualização)
+
+- **Datas sempre em DD/MM/AAAA** (ex.: 14/09/2026). Nunca AAAA-MM-DD.
+- **Textos curtos e diretos**, para gestor/encarregado/técnico entender em
+  segundos. Ordem: Problema → Data → Situação atual → Ação necessária.
+- Sem causa, manutenção ou solução inventada. "Voltou a informar" é diferente
+  de "problema corrigido" — só usar a segunda se houver evidência.
+- Evitar: "período observado", "cobertura de apenas X dia(s)", "registros
+  numéricos" (usar "média"), "indício de correção conforme regra do estudo".
+- Vale para colunas como Observação, Diagnóstico, Ação, Recomendação e Análise
+  em qualquer aba, relatório, slide ou tela do painel.
+- Os scripts (`02_classificar_veiculos.py`) já geram os textos e datas nesse
+  padrão — ao editar a lógica de classificação, manter o mesmo estilo.
+
 ## Planilha (`planilha/Gestao_Media_Combustivel_ROTA_Itabuna.xlsx`)
 
 Abas, na ordem:

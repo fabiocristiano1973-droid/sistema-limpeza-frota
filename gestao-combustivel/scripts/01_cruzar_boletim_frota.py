@@ -168,10 +168,10 @@ for gk, grows in groups.items():
             cand = [f for f in frec if f['prefixo_norm'] in prefixos_in_group]
             if len(cand) == 1:
                 matched[gk] = cand[0]
-                ambiguous[gk] = f"Placa {val} duplicada na Base_Frota; desambiguado por prefixo"
+                ambiguous[gk] = f"Placa {val} duplicada na Base_Frota. Confirmado pelo prefixo."
                 continue
             else:
-                ambiguous[gk] = f"Placa {val} duplicada na Base_Frota ({len(frec)} ocorrencias) sem desambiguacao clara por prefixo"
+                ambiguous[gk] = f"Placa {val} duplicada na Base_Frota ({len(frec)} cadastros). Prefixo não confirma qual é. Verificar cadastro."
                 unmatched[gk] = ambiguous[gk]
                 continue
         # placa not found directly -> try prefixo fallback
@@ -181,18 +181,19 @@ for gk, grows in groups.items():
             if fr:
                 cand = fr
                 break
+        prefixos_txt = ', '.join(sorted(prefixos_in_group)) or '-'
         if cand and len(cand) == 1:
             matched[gk] = cand[0]
-            ambiguous[gk] = f"Placa {val} nao encontrada na Base_Frota; correspondencia feita pelo prefixo {list(prefixos_in_group)}"
+            ambiguous[gk] = f"Placa {val} não está na Base_Frota. Veículo confirmado pelo prefixo {prefixos_txt}."
             continue
-        unmatched[gk] = f"Placa {val} (prefixo {list(prefixos_in_group)}) nao consta na Base_Frota"
+        unmatched[gk] = f"Placa {val} (prefixo {prefixos_txt}) não consta na Base_Frota."
     else:  # kind == 'X' (placa corrupted in boletim, use prefixo)
         cand = frota_by_prefixo.get(val)
         if cand and len(cand) == 1:
             matched[gk] = cand[0]
-            ambiguous[gk] = f"Placa do boletim ilegivel/corrompida; correspondencia feita pelo prefixo {val}"
+            ambiguous[gk] = f"Placa do boletim ilegível. Veículo confirmado pelo prefixo {val}."
             continue
-        unmatched[gk] = f"Placa ilegivel no boletim e prefixo {val} nao encontrado (ou ambiguo) na Base_Frota"
+        unmatched[gk] = f"Placa ilegível no boletim. Prefixo {val} não encontrado (ou ambíguo) na Base_Frota."
 
 print("Veiculos casados com Base_Frota:", len(matched))
 print("Veiculos NAO casados (excluidos):", len(unmatched))

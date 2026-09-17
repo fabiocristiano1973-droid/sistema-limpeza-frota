@@ -18,6 +18,7 @@ const CARD = 'F3F5FB';
 
 function fmt(n, d = 0) { return n === null || n === undefined ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
 function fmtR(n) { return 'R$ ' + fmt(n, 2); }
+function fmtData(iso) { const [a, m, dd] = iso.split('-'); return `${dd}/${m}/${a}`; }
 
 const kmRep = veiculos.reduce((s, v) => s + v.km_reportado, 0);
 const lit = veiculos.reduce((s, v) => s + v.litros_reportado, 0);
@@ -116,7 +117,7 @@ function footer(s, dark, pageLabel) {
     ['Km/L real da frota', fmt(kmlFrota, 2), 'km ÷ litros'],
     ['Custo total (ref.)', fmtR(custo), 'a R$ 6,00/L'],
     ['Economia potencial', fmtR(econR), fmt(econL, 0) + ' L estimados'],
-    ['Sem reporte / pararam', String((res.classificacao_contagem['Deixou de reportar'] || 0) + (res.classificacao_contagem['Sem reporte em todo o período observado'] || 0)), `de ${res.total_validos_presentes_boletim} veículos`],
+    ['Sem reporte / pararam', String((res.classificacao_contagem['Deixou de reportar'] || 0) + (res.classificacao_contagem['Sem reporte em todo o período'] || 0)), `de ${res.total_validos_presentes_boletim} veículos`],
   ];
   const cw = 3.9, ch = 2.0, gx = 0.25, gy = 0.25, x0 = 0.6, y0 = 1.95;
   kpis.forEach((k, i) => {
@@ -174,11 +175,11 @@ function footer(s, dark, pageLabel) {
   s.addText('Continuidade do reporte de telemetria', { x: 0.6, y: 0.5, w: 11.5, h: 0.6, fontFace: 'Cambria', fontSize: 28, bold: true, color: NAVY, margin: 0 });
   s.addText('Classificação dos veículos válidos pela sequência de reportes de média na semana', { x: 0.6, y: 1.12, w: 11.5, h: 0.4, fontFace: 'Calibri', fontSize: 13, color: MUTED, margin: 0 });
 
-  const order = ['Reporte contínuo', 'Reporte retomado / aparente correção', 'Intermitente', 'Deixou de reportar', 'Sem reporte em todo o período observado'];
-  const colorMap = { 'Reporte contínuo': GOOD, 'Reporte retomado / aparente correção': WARN, 'Intermitente': 'E67E22', 'Deixou de reportar': CRIT, 'Sem reporte em todo o período observado': '922B21' };
+  const order = ['Reporte contínuo', 'Reporte retomado / aparente correção', 'Intermitente', 'Deixou de reportar', 'Sem reporte em todo o período'];
+  const colorMap = { 'Reporte contínuo': GOOD, 'Reporte retomado / aparente correção': WARN, 'Intermitente': 'E67E22', 'Deixou de reportar': CRIT, 'Sem reporte em todo o período': '922B21' };
   s.addChart(pres.ChartType.bar, [{
     name: 'Veículos',
-    labels: order.map(o => o.replace(' em todo o período observado', ' (total)').replace('Reporte retomado / aparente correção', 'Retomado')),
+    labels: order.map(o => o.replace(' em todo o período', ' (total)').replace('Reporte retomado / aparente correção', 'Retomado')),
     values: order.map(o => res.classificacao_contagem[o] || 0),
   }], {
     x: 0.7, y: 1.75, w: 7.6, h: 4.9,
@@ -195,7 +196,7 @@ function footer(s, dark, pageLabel) {
   s.addText('Prioridade de verificação', { x: 8.85, y: 1.95, w: 3.6, h: 0.35, fontFace: 'Calibri', fontSize: 14, bold: true, color: CRIT, margin: 0 });
   s.addText(
     `${res.classificacao_contagem['Deixou de reportar'] || 0} veículos pararam de reportar e seguem sem dado até o fim do período. ` +
-    `${res.classificacao_contagem['Sem reporte em todo o período observado'] || 0} não reportaram a semana inteira, alguns rodando mais de 2.000 km sem qualquer dado de consumo.`,
+    `${res.classificacao_contagem['Sem reporte em todo o período'] || 0} não reportaram a semana inteira, alguns rodando mais de 2.000 km sem qualquer dado de consumo.`,
     { x: 8.85, y: 2.35, w: 3.6, h: 1.6, fontFace: 'Calibri', fontSize: 12, color: INK, margin: 0, valign: 'top' }
   );
   s.addText('"–" = telemetria não importou a média · qualquer número, inclusive 0,00, conta como reporte.', {
@@ -218,7 +219,7 @@ function footer(s, dark, pageLabel) {
       { text: p.placa, options: { fontSize: 12 } },
       { text: p.classificacao, options: { fontSize: 11.5, color: CRIT } },
       { text: fmt(p.distancia_dias_tracinho, 1) + ' km', options: { fontSize: 12, align: 'right' } },
-      { text: p.ultimo_dia, options: { fontSize: 12 } },
+      { text: fmtData(p.ultimo_dia), options: { fontSize: 12 } },
     ]);
   });
   s.addTable(rows, {
