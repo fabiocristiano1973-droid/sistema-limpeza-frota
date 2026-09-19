@@ -1,6 +1,6 @@
 {
   "name": "governo-interior",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Governo Interior — Princípios em Ação: app pessoal de valores e princípios, independente do sistema de limpeza da frota neste mesmo repositório.",
   "scripts": {
