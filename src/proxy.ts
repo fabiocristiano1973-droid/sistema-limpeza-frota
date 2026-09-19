@@ -53,13 +53,6 @@ export const config = {
     // public/icons/ precisam ficar de fora do proxy — são pedidos pelo
     // próprio navegador/SO ao tentar "Adicionar à Tela de Início" (PWA),
     // ANTES de qualquer login existir, então nunca podem ser redirecionados.
-    //
-    // governo-interior/ é um app pessoal separado (dados só em IndexedDB no
-    // dispositivo, sem conta/login) empacotado dentro deste mesmo projeto
-    // Next.js — precisa ficar inteiramente fora do login do sistema de
-    // limpeza da frota, senão o navegador nunca alcança seu manifest nem
-    // seu service worker (recebe a página de login no lugar do
-    // JSON/JS esperado, e a instalação como PWA falha).
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.webmanifest|icon.png|apple-icon.png|icons/|governo-interior).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.webmanifest|icon.png|apple-icon.png|icons/).*)",
   ],
 };

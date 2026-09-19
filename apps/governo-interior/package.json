@@ -1,0 +1,32 @@
+{
+  "name": "governo-interior",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governo Interior — Princípios em Ação: app pessoal de valores e princípios, independente do sistema de limpeza da frota neste mesmo repositório.",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "eslint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "idb": "^8.0.3",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "fake-indexeddb": "^6.2.5",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

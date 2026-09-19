@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // apps/governo-interior é um projeto Next.js separado, com seu próprio
+    // eslint.config.mjs — não faz parte deste lint (evita que .next/ e
+    // node_modules/ gerados por aquele build "vazem" para cá).
+    "apps/**",
   ]),
 ]);
 
